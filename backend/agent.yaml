@@ -1,15 +1,32 @@
-name: my-claude-agent
-description: My hosted Claude agent running on Foundry
+name: azure-resource-analyzer
+description: Azure resource analyzer built on Microsoft Agent Framework, hosted on Microsoft Foundry.
 template:
   kind: hosted
   protocols:
       - protocol: responses
         version: 1.0.0
   environment_variables:
-      - name: CLAUDE_CODE_USE_FOUNDRY
-        value: "1"
+      # Foundry project the agent talks to. Hosted Agent deployments normally inject
+      # AZURE_AI_PROJECT_ENDPOINT; the runtime also accepts FOUNDRY_PROJECT_ENDPOINT.
+      - name: FOUNDRY_PROJECT_ENDPOINT
+        value: ${AZURE_AI_PROJECT_ENDPOINT}
       - name: AZURE_AI_PROJECT_ENDPOINT
         value: ${AZURE_AI_PROJECT_ENDPOINT}
+      # Model deployment name used by FoundryChatClient.
+      - name: AZURE_AI_MODEL_DEPLOYMENT_NAME
+        value: ${AZURE_AI_MODEL_DEPLOYMENT_NAME}
+      - name: FOUNDRY_AGENT_NAME
+        value: azure-resource-analyzer
+      # workflow = specialist decomposition (default), single = one coordinator agent.
+      - name: AGENT_RUNTIME_MODE
+        value: workflow
+      # Filesystem workspace root, resolved under $HOME on Hosted Agents.
+      - name: AGENT_WORKSPACE_ROOT
+        value: $HOME/work
+      # Shell tool stays disabled by default; opt in explicitly.
+      - name: AGENT_ENABLE_SHELL_TOOL
+        value: "false"
+      # Observability (Part B). Application Insights connection is injected by Foundry.
       - name: ENABLE_INSTRUMENTATION
         value: "true"
       - name: ENABLE_SENSITIVE_DATA
@@ -20,29 +37,3 @@ template:
         value: gen_ai_latest_experimental
       - name: AZURE_EXPERIMENTAL_ENABLE_GENAI_TRACING
         value: "true"
-      - name: CLAUDE_HOSTED_AGENT_NAME
-        value: my-claude-agent
-      - name: ANTHROPIC_FOUNDRY_BASE_URL
-        value: ${ANTHROPIC_FOUNDRY_BASE_URL}
-      - name: ANTHROPIC_FOUNDRY_API_KEY
-        value: ${ANTHROPIC_FOUNDRY_API_KEY}
-      - name: ANTHROPIC_DEFAULT_OPUS_MODEL
-        value: claude-opus-4-6
-      - name: ANTHROPIC_DEFAULT_SONNET_MODEL
-        value: claude-sonnet-4-6
-      - name: ANTHROPIC_DEFAULT_HAIKU_MODEL
-        value: claude-haiku-4-5
-      - name: CLAUDE_MODEL
-        value: sonnet
-      - name: CLAUDE_MAX_TURNS
-        value: "12"
-      - name: CLAUDE_EFFORT
-        value: medium
-      - name: CLAUDE_PERMISSION_MODE
-        value: dontAsk
-      - name: CLAUDE_CODE_USE_POWERSHELL_TOOL
-        value: "1"
-      - name: CLAUDE_WORKSPACE_ROOT
-        value: $HOME/work
-
-
