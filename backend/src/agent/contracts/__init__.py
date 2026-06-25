@@ -1,22 +1,25 @@
-"""Backwards-compatible shim for the analysis output contract.
-
-The canonical contract now lives in ``src.agent.contracts.azure_analysis``. This
-module re-exports it so existing imports keep working during the migration. New
-code should import from ``src.agent.contracts`` instead.
-"""
+"""Runtime-neutral contracts for the Azure Resource Analyzer agent."""
 
 from __future__ import annotations
 
-from .contracts.azure_analysis import (
+from .azure_analysis import (
     EXPECTED_ANALYSIS_OUTPUT_SCHEMA,
+    AnalysisSummary,
+    ArchitectureFinding,
     AzureAnalysisResult,
+    CostRecommendation,
+    SecurityFinding,
     analysis_output_instructions,
     expected_analysis_output_schema,
 )
 
 __all__ = [
     "EXPECTED_ANALYSIS_OUTPUT_SCHEMA",
+    "AnalysisSummary",
+    "ArchitectureFinding",
     "AzureAnalysisResult",
+    "CostRecommendation",
+    "SecurityFinding",
     "analysis_output_instructions",
     "expected_analysis_output_schema",
 ]
