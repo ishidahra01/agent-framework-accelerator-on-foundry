@@ -12,7 +12,7 @@ from opentelemetry.trace import Status, StatusCode
 
 
 LOGGER = logging.getLogger("azure_resource_analyzer.observability")
-TRACER_NAME = "claude_agent_accelerator.part_b"
+TRACER_NAME = "maf_agent_accelerator.part_b"
 OUTPUT_SCHEMA_NAME = "azure-analysis-output-v1"
 PART_NAME = "part-b-observe"
 MAX_ATTRIBUTE_STRING_LENGTH = 256
@@ -204,4 +204,4 @@ def record_hook_event(
     }
     if attributes:
         event_attributes.update(attributes)
-    observability.record_event("claude_sdk.hook", event_attributes)
+    observability.record_event("agent.hook", event_attributes)
