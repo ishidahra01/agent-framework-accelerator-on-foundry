@@ -1,5 +1,7 @@
 # Part A Harness Deep Dive
 
+> **Note:** This deep dive predates the migration to the Microsoft Agent Framework and still describes the original Claude Agent SDK based design. The product concepts — specialist decomposition, internal Skills, the fixed output contract, Hosted Agent hosting, and observability — carry over unchanged. For the current MAF runtime see [architecture.md](architecture.md) and [migration-from-claude-agent-sdk.md](migration-from-claude-agent-sdk.md).
+
 This document is the standalone Part A guide for this repository. It explains how the accelerator is built, where the important code lives, how to run it, and what to look for when you demo or extend it.
 
 Part A is about the build-and-host layer: **Claude Agent SDK as the inner harness** and **Microsoft Foundry Hosted Agent as the outer managed harness**. Part B will later add evaluation, control, optimization, and ROI. You do not need any external design note to understand the current Part A implementation.

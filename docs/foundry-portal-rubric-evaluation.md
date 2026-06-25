@@ -1,5 +1,7 @@
 # Foundry Portal Rubric Evaluation Guide
 
+> **Note:** This guide predates the migration to the Microsoft Agent Framework. The portal evaluation flow applies unchanged to the MAF Hosted Agent. See [migration-from-claude-agent-sdk.md](migration-from-claude-agent-sdk.md).
+
 This guide shows how to run the Part B Evaluate demo from the Microsoft Foundry portal. It focuses on a portal-first flow: create a Rubric evaluator with Autogenerate, run the deployed Hosted Agent against the bad-config dataset, and inspect the cloud evaluation report.
 
 Use this when you want to show that evaluation happens in Foundry, not only in the local `evaluation.py` smoke test.

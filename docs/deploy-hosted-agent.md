@@ -14,11 +14,11 @@ This file only describes the rough end-to-end flow, in the order you typically r
 - Azure subscription with permission to create AI Foundry resources
 - [Azure Developer CLI (`azd`)](https://learn.microsoft.com/azure/developer/azure-developer-cli/install-azd) installed
 - Docker Desktop (or another OCI-compatible builder) running locally — required for building the hosted agent container image
-- An Anthropic Claude deployment on Microsoft Foundry, and either an API key for development or an Entra / Managed Identity path for production hardening
+- A model deployment on Microsoft Foundry (referenced by `AZURE_AI_MODEL_DEPLOYMENT_NAME`) and a `DefaultAzureCredential` sign-in path (Azure CLI for development, Managed Identity / Entra ID for production)
 
 ## Repository Layout Used by the Walkthrough
 
-- `backend/` — Hosted agent source: `Dockerfile`, `main.py`, `requirements.txt`, `agent.yaml`, `.claude/`, `src/agent/`, and `.foundry/agent-metadata.yaml`
+- `backend/` — Hosted agent source: `Dockerfile`, `main.py`, `requirements.txt`, `agent.yaml`, `agents/`, `skills/`, `src/agent/`, and `.foundry/agent-metadata.yaml`
 - A working directory (e.g. `work-foundry-init/`) created and managed by `azd ai agent init` — this is where `azure.yaml`, `infra/`, and `.azure/` live
 
 You will run all `azd` commands from inside this working directory.
@@ -52,21 +52,21 @@ This scaffolds `azure.yaml`, the Bicep templates under `infra/`, and the `.azure
 
 ## 3. Set Runtime Values in the azd Environment
 
-> **Don't skip this step.** The hosted agent reads `ANTHROPIC_FOUNDRY_API_KEY` from the `azd` environment at deploy time. The key is intentionally **not** committed to `backend/agent.yaml` — only the variable reference is.
+> **Don't skip this step.** The hosted agent needs `AZURE_AI_MODEL_DEPLOYMENT_NAME` (and the Foundry project endpoint) available in the `azd` environment at deploy time. Authentication uses `DefaultAzureCredential`, so no API key is stored in `backend/agent.yaml` — only variable references are.
 
-Open the generated `.azure/<env-name>/.env` and add your key if you are using API-key authentication during development:
+Open the generated `.azure/<env-name>/.env` and set your model deployment name:
 
 ```env
-ANTHROPIC_FOUNDRY_API_KEY=<your-foundry-anthropic-api-key>
+AZURE_AI_MODEL_DEPLOYMENT_NAME=<your-foundry-model-deployment>
 ```
 
-Other values in this `.env` file (project endpoint, App Insights connection string, ACR endpoint, etc.) are populated automatically by `azd provision`.
+Other values in this `.env` file (project endpoint, App Insights connection string, ACR endpoint, etc.) are populated automatically by `azd provision`. The runtime reads the project endpoint from `FOUNDRY_PROJECT_ENDPOINT` or `AZURE_AI_PROJECT_ENDPOINT`.
 
-The manifest also sets `CLAUDE_WORKSPACE_ROOT=$HOME/work`. Hosted Agents persist session state under `$HOME` and `/files`, so this keeps normalized exports, intermediate summaries, and generated reports in the same filesystem surface that the Foundry Portal Files view exposes. Local `.env` files can still use `CLAUDE_WORKSPACE_ROOT=work`, which resolves under the backend project directory.
+The manifest also sets `AGENT_WORKSPACE_ROOT=$HOME/work`. Hosted Agents persist session state under `$HOME` and `/files`, so this keeps normalized exports, intermediate summaries, and generated reports in the same filesystem surface that the Foundry Portal Files view exposes. Local `.env` files can still use `AGENT_WORKSPACE_ROOT=work`, which resolves under the backend project directory.
 
-Custom environment variables in `agent.yaml` must not use the `AGENT_` or `FOUNDRY_` prefixes. Those prefixes are reserved by the Hosted Agent container image specification, and Foundry rejects deployments that try to set them.
+Custom environment variables in `agent.yaml` must not use the `AGENT_` or `FOUNDRY_` prefixes unless they are part of the reserved Hosted Agent container specification. Confirm prefix rules against the current Hosted Agent docs before adding new variables.
 
-For production hardening, move Azure resource access toward Entra ID, Managed Identity, or OBO. The current API key is only the development fallback for Claude-on-Foundry model access.
+For production hardening, rely on Managed Identity or Entra ID through `DefaultAzureCredential`; use `az login` only for local development.
 
 ## 4. Provision Azure Resources
 
@@ -98,8 +98,8 @@ For the main Hosted Agent acceptance test, pass the Azure export JSON in the Por
 
 ## Runtime Notes
 
-- `backend/main.py` keeps the process working directory at `backend/` so Claude Code project settings, `.claude` agents, and Skills remain discoverable.
-- `CLAUDE_WORKSPACE_ROOT` controls where the agent should write intermediate artifacts. Local `work` resolves under the backend project directory; hosted deployments should use `$HOME/work` so artifacts are session-persisted and visible under the portal's HOME file tree.
+- `backend/main.py` keeps the process working directory at `backend/` so agent instructions under `agents/`, internal skills under `skills/`, and demo samples remain discoverable.
+- `AGENT_WORKSPACE_ROOT` controls where the agent should write intermediate artifacts. Local `work` resolves under the backend project directory; hosted deployments should use `$HOME/work` so artifacts are session-persisted and visible under the portal's HOME file tree.
 - `APPINSIGHTS_CONNECTION_STRING` or `AZURE_MONITOR_CONNECTION_STRING` is normalized to `APPLICATIONINSIGHTS_CONNECTION_STRING` so the telemetry layer can export consistently.
 - `backend/.foundry/agent-metadata.yaml` is a design metadata file. The deployment source of truth for `azd ai agent init` remains `backend/agent.yaml`.
 
@@ -109,4 +109,4 @@ Once initial provisioning is done, day-to-day iteration is just:
 
 1. Edit code under `backend/`
 2. `azd deploy`
-3. Re-run the Part A smoke test, inline JSON acceptance test, explore-agent routing test, and trace check from [hosted-agent-test-plan.md](hosted-agent-test-plan.md)
+3. Re-run the Part A smoke test, inline JSON acceptance test, explore routing test, and trace check from [hosted-agent-test-plan.md](hosted-agent-test-plan.md)
