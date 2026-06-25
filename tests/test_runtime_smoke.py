@@ -18,6 +18,7 @@ from src.agent.runtime import (
     build_skill_registry,
     compose_runtime_instructions,
     load_runtime_config,
+    structured_output_options,
 )
 from src.agent.workflow import (
     _specialist_instructions,
@@ -93,6 +94,22 @@ def test_compose_runtime_instructions(tmp_path: Path) -> None:
     assert "workspace" in text.lower()
 
 
+def test_compose_runtime_instructions_with_optimizer_overlay(tmp_path: Path) -> None:
+    overlay = "OPTIMIZER OVERLAY: prefer concise remediation steps."
+    text = compose_runtime_instructions(
+        BACKEND_DIR, tmp_path / "work", optimizer_overlay=overlay
+    )
+    assert overlay in text
+
+
+def test_structured_output_options_uses_contract() -> None:
+    from src.agent.contracts import AzureAnalysisResult
+
+    options = structured_output_options()
+    assert options["response_format"] is AzureAnalysisResult
+    assert options["store"] is False
+
+
 def test_specialist_instructions_include_skill(tmp_path: Path) -> None:
     definitions = load_agent_definitions(default_agents_root(BACKEND_DIR))
     registry = build_skill_registry(BACKEND_DIR)
@@ -105,6 +122,13 @@ def test_synthesizer_instructions_have_contract() -> None:
     text = _synthesizer_instructions()
     for key in ("summary", "security", "cost", "architecture"):
         assert key in text
+
+
+def test_synthesizer_instructions_with_overlay() -> None:
+    overlay = "OPTIMIZER OVERLAY: keep findings evidence-grounded."
+    text = _synthesizer_instructions(overlay)
+    assert overlay in text
+    assert "summary" in text
 
 
 def test_build_chat_client_without_maf(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -121,8 +145,8 @@ def test_build_agent_without_maf(monkeypatch: pytest.MonkeyPatch, tmp_path: Path
         build_agent(config, project_root=BACKEND_DIR, workspace_root=tmp_path)
 
 
-def test_build_workflow_without_maf(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_build_workflow_without_maf(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     _configure(monkeypatch)
     config = load_runtime_config()
     with pytest.raises(RuntimeError, match="agent-framework"):
-        build_analysis_workflow_agent(config, BACKEND_DIR)
+        build_analysis_workflow_agent(config, BACKEND_DIR, tmp_path / "work")

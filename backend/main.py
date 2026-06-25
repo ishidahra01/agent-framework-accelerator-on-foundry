@@ -79,7 +79,7 @@ def _resolve_runtime_mode() -> str:
     return mode
 
 
-def _build_hosted_agent(workspace_root: Path):
+def _build_hosted_agent(workspace_root: Path, optimizer_instructions: str = ""):
     config = load_runtime_config()
     LOGGER.info(
         "Foundry endpoint=%s model=%s agent=%s",
@@ -93,8 +93,14 @@ def _build_hosted_agent(workspace_root: Path):
             config,
             project_root=PROJECT_ROOT,
             workspace_root=workspace_root,
+            optimizer_instructions=optimizer_instructions,
         )
-    return build_analysis_workflow_agent(config, PROJECT_ROOT)
+    return build_analysis_workflow_agent(
+        config,
+        PROJECT_ROOT,
+        workspace_root,
+        optimizer_instructions=optimizer_instructions,
+    )
 
 
 async def main() -> None:
@@ -116,7 +122,7 @@ async def main() -> None:
     )
 
     workspace_root = ensure_workspace_root(PROJECT_ROOT)
-    hosted_agent = _build_hosted_agent(workspace_root)
+    hosted_agent = _build_hosted_agent(workspace_root, optimizer_config.instructions)
     port = _resolve_port()
 
     observability = create_observability(

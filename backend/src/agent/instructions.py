@@ -111,11 +111,19 @@ def compose_system_instructions(
     coordinator: str,
     skills_catalog: str = "",
     workspace_instructions: str = "",
+    optimizer_overlay: str = "",
     include_contract: bool = True,
 ) -> str:
-    """Join the coordinator prompt with skills, workspace, and output contract."""
+    """Join the coordinator prompt with skills, workspace, and output contract.
+
+    ``optimizer_overlay`` is the Agent Optimizer baseline/candidate instruction
+    overlay. When present it is appended right after the coordinator prompt so the
+    optimizer can steer behaviour without duplicating the long-lived constraints.
+    """
 
     parts = [coordinator.strip()]
+    if optimizer_overlay.strip():
+        parts.append(optimizer_overlay.strip())
     if skills_catalog.strip():
         parts.append(skills_catalog.strip())
     if workspace_instructions.strip():

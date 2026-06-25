@@ -117,6 +117,7 @@ def compose_runtime_instructions(
     *,
     registry: SkillRegistry | None = None,
     include_skill_catalog: bool = True,
+    optimizer_overlay: str = "",
 ) -> str:
     """Compose the runtime system prompt from definitions, skills, and contract."""
 
@@ -128,6 +129,7 @@ def compose_runtime_instructions(
         coordinator=coordinator,
         skills_catalog=skills_catalog,
         workspace_instructions=workspace_instructions(workspace_root),
+        optimizer_overlay=optimizer_overlay,
         include_contract=True,
     )
 
@@ -151,12 +153,27 @@ def build_chat_client(config: RuntimeConfig) -> Any:
     )
 
 
+def structured_output_options() -> dict[str, Any]:
+    """Default options that enforce the structured analysis contract on hosted agents.
+
+    Passing the pydantic contract as ``response_format`` makes the Foundry Responses
+    runtime emit schema-conformant final output (validated by the SDK) instead of
+    relying on prompt wording alone. ``store=False`` defers conversation history to
+    the hosting infrastructure, matching the official hosted-agent samples.
+    """
+
+    from .contracts import AzureAnalysisResult
+
+    return {"response_format": AzureAnalysisResult, "store": False}
+
+
 def build_agent(
     config: RuntimeConfig,
     *,
     project_root: Path,
     workspace_root: Path,
     client: Any | None = None,
+    optimizer_instructions: str = "",
 ) -> Any:
     """Build the single-coordinator MAF Agent with tools and skills.
 
@@ -180,6 +197,7 @@ def build_agent(
         # When a native SkillsProvider is active, skip the prompt catalog to avoid
         # duplicating skill advertisements.
         include_skill_catalog=skills_provider is None,
+        optimizer_overlay=optimizer_instructions,
     )
     tools = build_default_tools(
         project_root=project_root,
@@ -192,6 +210,7 @@ def build_agent(
         "name": config.agent_name,
         "instructions": instructions,
         "tools": tools,
+        "default_options": structured_output_options(),
     }
     if skills_provider is not None:
         agent_kwargs["context_providers"] = [skills_provider]
