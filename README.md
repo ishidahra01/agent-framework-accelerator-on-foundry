@@ -1,0 +1,168 @@
+# Azure Well-Architected Review Agent Accelerator on Foundry
+
+This repository is a reference accelerator for running a **Claude Agent SDK** based Azure resource review agent as a **Microsoft Foundry Hosted Agent**.
+
+The sample scenario is an Azure Well-Architected review workflow. The agent reads Azure exports, ARM-style JSON, or resource configuration snapshots, then returns security findings, cost recommendations, and architecture guidance through a stable output contract.
+
+The current implementation covers **Part A: Harness Deep Dive** and the first steps of **Part B: Trust to ROI Deep Dive**. Part A shows how to build and host the agent while preserving the Claude Agent SDK runtime model. Part B now includes Observe, Evaluate, and Optimize foundations: tracing context, local ASSERT-like policy checks, rubric scorecards, seed datasets, a Foundry portal Rubric evaluation guide, optional Foundry cloud evaluation automation, and Agent Optimizer readiness. Start with [docs/harness-deepdive.md](docs/harness-deepdive.md) for the runtime walkthrough, [docs/trust-roi-deepdive.md](docs/trust-roi-deepdive.md) for the operational lifecycle, [docs/foundry-portal-rubric-evaluation.md](docs/foundry-portal-rubric-evaluation.md) for the portal-first B2 evaluation run, and [docs/foundry-agent-optimizer.md](docs/foundry-agent-optimizer.md) for the B4 Optimize run.
+
+## What This Repository Demonstrates
+
+- Claude Agent SDK as the inner harness for agent loop, SubAgents, Skills, built-in tools, and context handling
+- Microsoft Agent Framework as the bridge that exposes the Claude agent to the Hosted Agent runtime
+- Microsoft Foundry Hosted Agent as the outer managed harness for endpoint hosting, sandbox execution, state boundaries, telemetry, and future identity / guardrail integration
+- A fixed Azure analysis output schema used by Part B for observability, evaluation, control, optimization, and ROI
+- A Part B Observe foundation that adds accelerator-specific OpenTelemetry attributes around the Hosted Agent runtime
+- A Part B Evaluate foundation that turns policies and rubrics into repeatable local checks, a portal-first Rubric evaluation flow, and optional Foundry cloud eval automation
+- A Part B Optimize foundation that wires Agent Optimizer baseline/candidate config into the Hosted Agent runtime
+- A deliberately weak Azure export under `backend/samples/bad-config/` for repeatable demos
+
+## Current Architecture
+
+```text
+User / client
+  -> Microsoft Foundry Hosted Agent responses endpoint
+  -> backend/main.py
+  -> Microsoft Agent Framework adapter
+  -> Claude Agent SDK loop
+  -> .claude Main Agent instructions
+  -> explore-agent, security-analyzer, cost-optimizer, architecture-reviewer
+  -> Azure WAF / security / cost Skills
+  -> stable JSON analysis contract
+```
+
+The architecture is described in more detail in [docs/architecture.md](docs/architecture.md). Part A is documented in [docs/harness-deepdive.md](docs/harness-deepdive.md), and Part B is documented in [docs/trust-roi-deepdive.md](docs/trust-roi-deepdive.md).
+
+## Repository Layout
+
+```text
+backend/
+  main.py                         # Hosted Agent entrypoint and MAF bridge
+  agent.yaml                      # azd / Hosted Agent manifest
+  CLAUDE.md                       # Main Agent project instructions
+  src/agent/
+    runtime_contracts.py          # Stable output schema and prompt contract
+    workspaces.py                 # Hosted workspace root helper
+    optimization.py               # Agent Optimizer runtime config bridge
+    observability/tracing.py      # Part B Observe helper and trace attribute contract
+    observability/evaluation.py   # Part B Evaluate local policy/rubric scorecard helper
+  .claude/optimizer_configs/      # Agent Optimizer baseline overlay
+  eval.yaml                       # Agent Optimizer dataset/evaluator intent
+  .claude/
+    agents/                       # Explore, security, cost, architecture SubAgents
+    skills/                       # Azure WAF, security, and cost guidance
+  .foundry/
+    agent-metadata.yaml           # Design metadata for Hosted Agent behavior
+  samples/
+    bad-config/azure-export.json  # Demo input included in the hosted container
+evals/                            # Part B policy, rubric, conversation, and JSONL evaluation assets
+  rubric-autogenerate-context.md  # Reference context for Foundry Rubric Autogenerate
+scripts/
+  run_foundry_agent_eval.py       # Optional Foundry cloud evaluation runner
+docs/
+  architecture.md
+  harness-deepdive.md
+  trust-roi-deepdive.md
+  foundry-portal-rubric-evaluation.md
+  foundry-agent-optimizer-concepts.md
+  foundry-agent-optimizer.md
+  deploy-hosted-agent.md
+```
+
+## Agent Design
+
+The Main Agent coordinates four specialist SubAgents:
+
+| SubAgent | Responsibility |
+| --- | --- |
+| `explore-agent` | Inventories files, resource types, and high-signal configuration facts before deeper review. |
+| `security-analyzer` | Reviews public exposure, encryption, identity, authentication, and network controls. |
+| `cost-optimizer` | Reviews oversized resources, always-on spend, premium SKUs, and elasticity gaps. |
+| `architecture-reviewer` | Reviews reliability, operational readiness, observability, and Well-Architected alignment. |
+
+Skills under `backend/.claude/skills/` provide progressive context loading for Azure WAF, security baselines, and cost patterns.
+
+## Expected Analysis Output
+
+Azure analysis should preserve this contract:
+
+```json
+{
+  "summary": { "resourcesAnalyzed": 25, "securityFindings": 12, "costSavingsOpportunities": 8 },
+  "security": [ { "severity": "Critical", "resource": "...", "finding": "...", "remediation": "..." } ],
+  "cost": [ { "resource": "...", "recommendation": "...", "estimatedSavings": "$15/month" } ],
+  "architecture": [ { "pillar": "Operational Excellence", "finding": "...", "recommendation": "..." } ]
+}
+```
+
+The contract is centralized in `backend/src/agent/runtime_contracts.py` and appended to the runtime prompt in `backend/main.py`.
+
+## Local Development
+
+From the repository root:
+
+```powershell
+Set-Location backend
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+```
+
+Configure Foundry access through `backend/.env` or environment variables:
+
+```env
+CLAUDE_CODE_USE_FOUNDRY=1
+ANTHROPIC_FOUNDRY_BASE_URL=https://<resource>.services.ai.azure.com/anthropic
+ANTHROPIC_FOUNDRY_API_KEY=<your-key>
+ANTHROPIC_DEFAULT_SONNET_MODEL=<deployment-name>
+CLAUDE_MODEL=sonnet
+CLAUDE_WORKSPACE_ROOT=work
+```
+
+For Hosted Agent deployment, the manifest sets `CLAUDE_WORKSPACE_ROOT=$HOME/work` so generated files are written under the session-persisted HOME filesystem that appears in the Foundry Portal Files view.
+
+Start the local responses server:
+
+```powershell
+python main.py
+```
+
+The default endpoint is `http://localhost:8088/responses`.
+
+## Demo Prompt
+
+Use the included weak Azure export. The path is relative to the backend working directory used by the agent:
+
+```text
+samples/bad-config/azure-export.json を分析して、security / cost / architecture の固定JSONスキーマで結果を返してください。必要なら explore-agent で先に棚卸ししてください。
+```
+
+## Deployment
+
+Deploy the backend as a Foundry Hosted Agent with `azd ai agent init`, `azd provision`, and `azd deploy`. See [docs/deploy-hosted-agent.md](docs/deploy-hosted-agent.md).
+
+After deployment, validate both input paths: the bundled fixture smoke test and the inline JSON request test. See [docs/hosted-agent-test-plan.md](docs/hosted-agent-test-plan.md) for the Hosted Agent verification checklist and concrete prompts.
+
+## Status and Roadmap
+
+| Area | Status |
+| --- | --- |
+| Part A inner harness | Implemented: Claude Agent SDK loop, SubAgents, Skills, built-in tools. |
+| Part A outer harness | Implemented: MAF bridge, responses manifest, telemetry setup, workspace contract. |
+| Part A next steps | Approval checkpoint, Invocations protocol, MAF workflow sample, identity hardening. |
+| Part B Observe | Implemented foundation: tracing helper, common attributes, startup/server observability context. |
+| Part B Evaluate | Implemented foundation: ASSERT-like policy assets, local rubric scorecard, datasets, and optional Foundry cloud eval runner. |
+| Part B next steps | Planned: request/run spans, trace evaluation, ACS policy/runtime, ROI metrics. |
+| Frontend | Planned. |
+
+## References
+
+- [Claude Agent SDK Documentation](https://platform.claude.com/docs/en/agent-sdk/overview)
+- [Claude in Microsoft Foundry](https://platform.claude.com/docs/en/build-with-claude/claude-in-microsoft-foundry)
+- [Microsoft Foundry Documentation](https://learn.microsoft.com/en-us/azure/foundry/)
+- [Microsoft Foundry Hosted Agents](https://learn.microsoft.com/azure/ai-foundry/agents/concepts/hosted-agents?view=foundry)
+- [Model Context Protocol](https://modelcontextprotocol.io/)
+
+## License
+
+MIT License. See [LICENSE](LICENSE) for details.
