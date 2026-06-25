@@ -1,5 +1,7 @@
 # Part B Trust to ROI Deep Dive
 
+> **Note:** This deep dive predates the migration to the Microsoft Agent Framework. Some runtime references (Claude Agent SDK, `CLAUDE_*` variables, `.claude/` paths) describe the original design; the Part B concepts and assets apply unchanged to the MAF runtime. See [architecture.md](architecture.md) and [migration-from-claude-agent-sdk.md](migration-from-claude-agent-sdk.md).
+
 This document is the standalone Part B guide for this repository. It explains how the accelerator grows from a hosted Azure review agent into an operational system that can be observed, evaluated, controlled, optimized, and tied back to business value.
 
 Part A explains how the agent is built and hosted. Part B starts after that: **once the agent can answer, how do we prove that it is trustworthy, improve it over time, and explain the value it creates?** You do not need any external design note to understand the Part B direction. The repository code and this guide are the source of truth.

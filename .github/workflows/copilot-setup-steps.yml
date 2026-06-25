@@ -1,0 +1,64 @@
+name: "Copilot Setup Steps"
+
+# Preinstall the Microsoft Agent Framework runtime and test dependencies so the
+# Copilot cloud agent can build the agent, execute the MAF construction path, and
+# run the test-suite during a task — instead of discovering dependencies by trial
+# and error in its ephemeral environment.
+#
+# This file also runs as a normal GitHub Actions workflow when it changes, which
+# both validates the environment and exercises the MAF-gated construction tests.
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - .github/workflows/copilot-setup-steps.yml
+      - backend/requirements.txt
+      - backend/requirements-dev.txt
+  pull_request:
+    paths:
+      - .github/workflows/copilot-setup-steps.yml
+      - backend/requirements.txt
+      - backend/requirements-dev.txt
+
+jobs:
+  # The job MUST be named `copilot-setup-steps` or Copilot will not pick it up.
+  copilot-setup-steps:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    # Lowest permissions needed for the steps. Copilot uses its own token for its
+    # own operations; this token only needs to read the repository.
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        # 3.12 matches backend/Dockerfile (python:3.12-slim).
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: |
+            backend/requirements.txt
+            backend/requirements-dev.txt
+
+      - name: Install runtime and test dependencies
+        # requirements.txt pins an explicit prerelease floor for
+        # agent-framework-foundry-hosting, so pip installs it without a global
+        # --pre flag. requirements-dev.txt adds the test runner.
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+          pip install -r backend/requirements-dev.txt
+
+      - name: Validate environment (compile + tests)
+        # With MAF installed, the MAF-gated construction tests in
+        # tests/test_maf_construction.py exercise the real Agent/Workflow build
+        # path (with an injected fake chat client, so no Foundry endpoint is
+        # required). This confirms the wiring the agent depends on.
+        run: |
+          python -m compileall -q backend scripts tests
+          python -m pytest tests/ -q

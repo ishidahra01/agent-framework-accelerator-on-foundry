@@ -1,6 +1,8 @@
 # Foundry Agent Optimizer Concepts
 
-This document explains what Agent Optimizer uses as input, what happens during an optimization run, what it produces, and what must be prepared for this repository's Claude Hosted Agent.
+> **Note:** This document predates the migration to the Microsoft Agent Framework and references the original Claude-based Hosted Agent. The optimizer workflow and inputs apply unchanged to the MAF runtime; baseline/candidate configs now live under `backend/optimizer_configs/`. See [migration-from-claude-agent-sdk.md](migration-from-claude-agent-sdk.md).
+
+This document explains what Agent Optimizer uses as input, what happens during an optimization run, what it produces, and what must be prepared for this repository's Hosted Agent.
 
 Use [foundry-agent-optimizer.md](foundry-agent-optimizer.md) for the command-by-command runbook. Use this document to understand the moving parts before running it.
 

@@ -1,0 +1,6 @@
+# Test/development dependencies for the Azure Resource Analyzer backend.
+# Installed on top of the runtime requirements so the Microsoft Agent Framework
+# construction path can be exercised by the test-suite (see
+# tests/test_maf_construction.py).
+-r requirements.txt
+pytest>=8,<10

@@ -19,7 +19,7 @@ Recommended split:
 
 | Input Mode | What It Tests | When To Use |
 | --- | --- | --- |
-| Bundled file path: `samples/bad-config/azure-export.json` | Container packaging, Claude Code `Read`, cwd, `.claude` discovery, file-system access | First smoke test after deploy |
+| Bundled file path: `samples/bad-config/azure-export.json` | Container packaging, file-read tool, cwd, agent/skill discovery, file-system access | First smoke test after deploy |
 | Inline JSON in request input | Hosted Agent API/Portal input flow, prompt handling, harness synthesis, output contract | Main acceptance test |
 | External blob or URL | Real-world file handoff pattern, access/auth behavior | Later integration test |
 
@@ -41,7 +41,7 @@ For later Agent Optimizer testing, confirm `azure.ai.agents` is `0.1.40-preview`
 Set or confirm runtime values in `.azure/<env-name>/.env`.
 
 ```env
-ANTHROPIC_FOUNDRY_API_KEY=<your-foundry-anthropic-api-key>
+AZURE_AI_MODEL_DEPLOYMENT_NAME=<your-foundry-model-deployment>
 ```
 
 Provision and deploy.
@@ -79,7 +79,7 @@ Use the portal first when you want a quick human-readable check.
 Smoke-test prompt:
 
 ```text
-samples/bad-config/azure-export.json を Read で読み、WebSearch と WebFetch と Agent ツールは使わず、見えているJSONだけを根拠に summary/security/cost/architecture の固定JSONだけを返してください。説明文は不要です。
+samples/bad-config/azure-export.json を読み込み、外部検索ツールや専門家への委譲は使わず、見えているJSONだけを根拠に summary/security/cost/architecture の固定JSONだけを返してください。説明文は不要です。
 ```
 
 Then run the realistic inline-input prompt. Paste the JSON from `backend/samples/bad-config/azure-export.json` into `<PASTE_JSON_HERE>`.
@@ -92,7 +92,7 @@ Then run the realistic inline-input prompt. Paste the JSON from `backend/samples
 - security は severity/resource/finding/remediation を含める
 - cost は resource/recommendation/estimatedSavings を含める
 - architecture は pillar/finding/recommendation を含める
-- WebSearch と WebFetch は使わない
+- 外部検索ツールは使わない
 
 Azure export JSON:
 <PASTE_JSON_HERE>
@@ -131,14 +131,14 @@ Authenticate with Azure CLI or Azure Developer CLI according to the hosted agent
 The body shape is the same responses protocol body used locally.
 
 ```powershell
-$prompt = 'samples/bad-config/azure-export.json を Read で読み、WebSearch と WebFetch と Agent ツールは使わず、見えているJSONだけを根拠に summary/security/cost/architecture の固定JSONだけを返してください。説明文は不要です。'
+$prompt = 'samples/bad-config/azure-export.json を読み込み、外部検索ツールや専門家への委譲は使わず、見えているJSONだけを根拠に summary/security/cost/architecture の固定JSONだけを返してください。説明文は不要です。'
 $body = @{ input = $prompt; stream = $false } | ConvertTo-Json -Depth 8
 $response = Invoke-RestMethod -Uri "$endpoint/responses" -Method Post -ContentType 'application/json' -Body $body
 $texts = @($response.output | ForEach-Object { $_.content } | ForEach-Object { $_.text } | Where-Object { $_ })
 $texts[-1]
 ```
 
-The final answer may be in the last output item. Do not validate only `output[0]`, because Claude can emit an intermediate message before the final result.
+The final answer may be in the last output item. Do not validate only `output[0]`, because the agent can emit an intermediate message before the final result.
 
 For inline-input testing, load the JSON and embed it in the prompt.
 
@@ -147,7 +147,7 @@ $json = Get-Content ..\backend\samples\bad-config\azure-export.json -Raw
 $prompt = @"
 次の Azure export JSON を分析してください。コンテナ内のサンプルファイルは読まず、このメッセージ内の JSON だけを根拠にしてください。
 
-summary/security/cost/architecture の固定JSONだけを返してください。WebSearch と WebFetch は使わないでください。
+summary/security/cost/architecture の固定JSONだけを返してください。外部検索ツールは使わないでください。
 
 Azure export JSON:
 $json
@@ -167,11 +167,11 @@ Use this matrix to decide whether the implemented harness is functioning, not ju
 | Hosted outer harness | Portal, `azd ai agent run`, or direct `/responses` returns a completed response | Agent is reachable as a Hosted Agent, not only as local Python |
 | Responses protocol | Direct API returns a responses-shaped object with `output` items | `status` is completed and output text is present |
 | Container packaging | Smoke prompt can read `samples/bad-config/azure-export.json` | Result reports 5 resources or findings from the bundled sample |
-| Claude Code project context | Agent follows `backend/CLAUDE.md` and stable schema instructions | Final answer uses `summary/security/cost/architecture` |
+| Agent instructions | Agent follows `backend/agents/azure-resource-analyzer.md` and stable schema instructions | Final answer uses `summary/security/cost/architecture` |
 | Built-in tools | Smoke prompt reads the file without asking for permission | File-specific findings appear, not generic Azure advice |
-| SubAgent routing | Ask for `explore-agent` inventory | Provider/type counts include Storage, NSG, VM, SQL DB, DiagnosticSettings |
+| Specialist routing | Ask for an `explore` inventory | Provider/type counts include Storage, NSG, VM, SQL DB, DiagnosticSettings |
 | Specialist intent | Full review prompt produces security, cost, and architecture findings | Findings map to concrete resources and all three dimensions are populated |
-| Workspace contract | Ask the agent to write a short report under `CLAUDE_WORKSPACE_ROOT` | Generated artifact path is under `$HOME/work` and appears under HOME in the Portal Files view |
+| Workspace contract | Ask the agent to write a short report under `AGENT_WORKSPACE_ROOT` | Generated artifact path is under `$HOME/work` and appears under HOME in the Portal Files view |
 | Telemetry | Inspect Foundry/App Insights traces after a request | Hosted request, agent run, and model/tool spans or events are visible |
 | Output contract | Parse the final text as JSON after stripping Markdown fences if present | Required top-level keys exist and arrays contain required fields |
 
@@ -180,7 +180,7 @@ Use this matrix to decide whether the implemented harness is functioning, not ju
 ### 1. Bundled Fixture Smoke Test
 
 ```text
-samples/bad-config/azure-export.json を Read で読み、summary/security/cost/architecture の固定JSONだけを返してください。WebSearch と WebFetch と Agent ツールは使わないでください。
+samples/bad-config/azure-export.json を読み込み、summary/security/cost/architecture の固定JSONだけを返してください。外部検索ツールや専門家への委譲は使わないでください。
 ```
 
 Expected content:
@@ -201,10 +201,10 @@ Expected content:
 
 Expected content is similar to the smoke test. This test is more important for API/Portal readiness because it proves the Hosted Agent can analyze user-provided request content.
 
-### 3. Explore Agent Routing Test
+### 3. Explore Routing Test
 
 ```text
-samples/bad-config/azure-export.json を explore-agent で棚卸ししてください。最終回答は resource count by provider/type だけをJSONで返してください。
+samples/bad-config/azure-export.json を explore の棚卸しで処理してください。最終回答は resource count by provider/type だけをJSONで返してください。
 ```
 
 Expected output:
@@ -228,7 +228,7 @@ Expected output:
 | Inline JSON test works but file path test fails | Harness is fine, packaged fixture path is wrong | Fix sample placement or prompt path |
 | File path test works but inline JSON is weak | Prompt relies too much on local file workflow | Strengthen request-content instructions and schema contract |
 | Output has multiple messages | Responses protocol returned intermediate assistant text | Validate the last non-empty output text |
-| Findings are generic | Agent did not inspect the file/input or lacked evidence | Use the smoke prompt with explicit `Read`, or paste the JSON inline |
+| Findings are generic | Agent did not inspect the file/input or lacked evidence | Use the smoke prompt with explicit file read, or paste the JSON inline |
 | No traces appear | App Insights connection was not wired into the hosted environment | Check `APPLICATIONINSIGHTS_CONNECTION_STRING` and `APPINSIGHTS_CONNECTION_STRING` mapping |
 
 ## Decision Criteria
@@ -238,7 +238,7 @@ Treat the Hosted Agent validation as passed when all of these are true:
 1. Hosted endpoint can be invoked from Portal or direct API.
 2. Bundled fixture smoke test succeeds.
 3. Inline JSON acceptance test succeeds.
-4. `explore-agent` routing test succeeds.
+4. `explore` routing test succeeds.
 5. Final output follows the fixed contract.
 6. At least one trace or telemetry signal is visible for the hosted request.
 

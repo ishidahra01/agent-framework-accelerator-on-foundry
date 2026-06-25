@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Iterable, Mapping, Sequence
 
-from src.agent.runtime_contracts import EXPECTED_ANALYSIS_OUTPUT_SCHEMA
+from src.agent.contracts.azure_analysis import EXPECTED_ANALYSIS_OUTPUT_SCHEMA
 
 
 SEVERITY_ORDER = {

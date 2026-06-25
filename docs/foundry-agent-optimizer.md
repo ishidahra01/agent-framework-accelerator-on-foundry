@@ -1,5 +1,7 @@
 # Foundry Agent Optimizer Guide
 
+> **Note:** This guide predates the migration to the Microsoft Agent Framework. Optimizer baseline/candidate configs now live under `backend/optimizer_configs/` (formerly `backend/.claude/optimizer_configs/`); the workflow is otherwise unchanged. See [migration-from-claude-agent-sdk.md](migration-from-claude-agent-sdk.md).
+
 This guide shows how to run the Part B Optimize demo with Agent Optimizer in Microsoft Foundry Agent Service.
 
 Agent Optimizer is preview. It evaluates a deployed Hosted Agent against a dataset, generates candidate configurations, scores the candidates, and lets you apply the best candidate locally before redeploying. Use this guide after the B2 evaluation assets are in place.
