@@ -7,9 +7,17 @@ when Microsoft Agent Framework is not installed.
 
 from __future__ import annotations
 
+import importlib.util
 from pathlib import Path
 
 import pytest
+
+MAF_INSTALLED = importlib.util.find_spec("agent_framework") is not None
+maf_absent_only = pytest.mark.skipif(
+    MAF_INSTALLED,
+    reason="Microsoft Agent Framework is installed; the import guard is not exercised. "
+    "Construction is covered by tests/test_maf_construction.py.",
+)
 
 from src.agent.runtime import (
     DEFAULT_AGENT_NAME,
@@ -131,6 +139,7 @@ def test_synthesizer_instructions_with_overlay() -> None:
     assert "summary" in text
 
 
+@maf_absent_only
 def test_build_chat_client_without_maf(monkeypatch: pytest.MonkeyPatch) -> None:
     _configure(monkeypatch)
     config = load_runtime_config()
@@ -138,6 +147,7 @@ def test_build_chat_client_without_maf(monkeypatch: pytest.MonkeyPatch) -> None:
         build_chat_client(config)
 
 
+@maf_absent_only
 def test_build_agent_without_maf(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     _configure(monkeypatch)
     config = load_runtime_config()
@@ -145,6 +155,7 @@ def test_build_agent_without_maf(monkeypatch: pytest.MonkeyPatch, tmp_path: Path
         build_agent(config, project_root=BACKEND_DIR, workspace_root=tmp_path)
 
 
+@maf_absent_only
 def test_build_workflow_without_maf(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     _configure(monkeypatch)
     config = load_runtime_config()

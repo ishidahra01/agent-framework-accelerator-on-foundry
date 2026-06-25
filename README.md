@@ -139,6 +139,33 @@ python main.py
 
 The default endpoint is `http://localhost:8088/responses`.
 
+### Testing and validation
+
+Install the test dependencies and run the suite from the repository root:
+
+```powershell
+pip install -r backend/requirements-dev.txt
+python -m compileall -q backend scripts tests
+python -m pytest tests/ -q
+```
+
+The pure-Python tests (config, contracts, skills, tools, instructions, workspace)
+run without the Microsoft Agent Framework installed. When MAF **is** installed,
+the MAF-gated tests in `tests/test_maf_construction.py` additionally exercise the
+real `Agent`/`Workflow` construction path with an injected fake chat client, so no
+Foundry endpoint is required to verify the wiring (specialist tools, fan-in graph,
+structured-output contract, optimizer overlay).
+
+### Cloud agent environment
+
+The GitHub Copilot cloud agent gets the MAF runtime preinstalled via
+[`.github/workflows/copilot-setup-steps.yml`](.github/workflows/copilot-setup-steps.yml).
+This lets the cloud agent build the agent, run the construction path, and execute
+the full test-suite during a task instead of discovering dependencies by trial and
+error. The workflow also runs on changes to itself (or the requirements files) so
+the environment stays validated. Note: the file must be on the default branch for
+the cloud agent to pick it up.
+
 ## Demo Prompt
 
 Use the included weak Azure export. The path is relative to the backend working directory used by the agent:
