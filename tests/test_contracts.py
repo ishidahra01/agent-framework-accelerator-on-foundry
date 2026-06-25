@@ -11,7 +11,6 @@ from src.agent.contracts import (
     AzureAnalysisResult,
     analysis_output_instructions,
 )
-from src.agent import runtime_contracts
 
 
 VALID_PAYLOAD = {
@@ -99,8 +98,3 @@ def test_instructions_contain_contract_keys() -> None:
     start = text.rindex("```json") + len("```json")
     end = text.rindex("```")
     json.loads(text[start:end].strip())
-
-
-def test_runtime_contracts_shim_reexports() -> None:
-    assert runtime_contracts.analysis_output_instructions() == analysis_output_instructions()
-    assert runtime_contracts.EXPECTED_ANALYSIS_OUTPUT_SCHEMA == EXPECTED_ANALYSIS_OUTPUT_SCHEMA

@@ -63,9 +63,9 @@ def _testing_criteria(eval_model: str) -> list[dict[str, Any]]:
 def build_arg_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Run a Microsoft Foundry cloud evaluation against a hosted agent target.")
     parser.add_argument("--dataset", type=Path, default=Path("evals/datasets/bad-config.queries.jsonl"))
-    parser.add_argument("--endpoint", default=os.getenv("AZURE_AI_PROJECT_ENDPOINT"))
-    parser.add_argument("--agent-name", default=os.getenv("FOUNDRY_AGENT_NAME") or os.getenv("CLAUDE_HOSTED_AGENT_NAME"))
-    parser.add_argument("--agent-version", default=os.getenv("FOUNDRY_AGENT_VERSION") or os.getenv("CLAUDE_HOSTED_AGENT_VERSION", ""))
+    parser.add_argument("--endpoint", default=os.getenv("FOUNDRY_PROJECT_ENDPOINT") or os.getenv("AZURE_AI_PROJECT_ENDPOINT"))
+    parser.add_argument("--agent-name", default=os.getenv("FOUNDRY_AGENT_NAME"))
+    parser.add_argument("--agent-version", default=os.getenv("FOUNDRY_AGENT_VERSION", ""))
     parser.add_argument("--eval-model", default=os.getenv("AZURE_AI_MODEL_DEPLOYMENT_NAME") or os.getenv("FOUNDRY_MODEL_NAME"))
     parser.add_argument("--dataset-name", default="azure-waf-bad-config-queries")
     parser.add_argument("--dataset-version", default="1")
@@ -80,9 +80,9 @@ def build_arg_parser() -> argparse.ArgumentParser:
 def main(argv: Sequence[str] | None = None) -> int:
     args = build_arg_parser().parse_args(argv)
     if not args.endpoint:
-        raise RuntimeError("AZURE_AI_PROJECT_ENDPOINT or --endpoint is required.")
+        raise RuntimeError("FOUNDRY_PROJECT_ENDPOINT, AZURE_AI_PROJECT_ENDPOINT, or --endpoint is required.")
     if not args.agent_name:
-        raise RuntimeError("FOUNDRY_AGENT_NAME, CLAUDE_HOSTED_AGENT_NAME, or --agent-name is required.")
+        raise RuntimeError("FOUNDRY_AGENT_NAME or --agent-name is required.")
     if not args.eval_model:
         raise RuntimeError("AZURE_AI_MODEL_DEPLOYMENT_NAME, FOUNDRY_MODEL_NAME, or --eval-model is required.")
     if not args.dataset.exists():

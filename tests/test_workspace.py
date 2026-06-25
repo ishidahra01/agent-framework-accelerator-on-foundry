@@ -6,8 +6,6 @@ from pathlib import Path
 
 import pytest
 
-from src.agent import workspace as workspace_mod
-from src.agent import workspaces as workspaces_shim
 from src.agent.workspace import (
     DEFAULT_WORKSPACE_ROOT_NAME,
     ensure_workspace_root,
@@ -58,8 +56,3 @@ def test_ensure_workspace_root_creates(tmp_path: Path) -> None:
 def test_workspace_instructions_mentions_secrets(tmp_path: Path) -> None:
     text = workspace_instructions(tmp_path / "work")
     assert "secret" in text.lower()
-
-
-def test_shim_reexports() -> None:
-    assert workspaces_shim.resolve_workspace_root is workspace_mod.resolve_workspace_root
-    assert workspaces_shim.ensure_workspace_root is workspace_mod.ensure_workspace_root
