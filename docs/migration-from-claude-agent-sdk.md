@@ -17,12 +17,12 @@ This document maps the old components to their MAF replacements so existing depl
 | Agent loop | `ClaudeAgent` via `agent-framework-claude` | `Agent` + `FoundryChatClient` (`backend/src/agent/runtime.py`) |
 | Model client | Anthropic-on-Foundry endpoint | `FoundryChatClient` from `agent_framework.foundry` |
 | Main agent prompt | `backend/CLAUDE.md` | `backend/agents/azure-resource-analyzer.md` |
-| SubAgents | `backend/.claude/agents/*.md` | `backend/agents/{explore,security,cost,architecture}.md` |
-| Specialist orchestration | Claude SubAgent delegation | MAF workflow (`backend/src/agent/workflow.py`) |
-| Skills | `backend/.claude/skills/*/SKILL.md` | `backend/skills/*/SKILL.md` via `SkillsProvider` |
+| SubAgents | `backend/.claude/agents/*.md` | Hosted mode uses `backend/skills/*/SKILL.md` role skills; `backend/agents/{explore,security,cost,architecture}.md` remains for workflow experiments |
+| Specialist orchestration | Claude SubAgent delegation | Hosted default is one coordinator `Agent` with MAF Skills; optional workflow lives in `backend/src/agent/workflow.py` |
+| Skills | `backend/.claude/skills/*/SKILL.md` | `backend/skills/*/SKILL.md` via `SkillsProvider.from_paths(...)` |
 | Built-in tools | Claude Read/Write/Edit/Glob/Grep/Bash | Explicit MAF tools (`backend/src/agent/tools/`) |
 | Output contract | `backend/src/agent/runtime_contracts.py` | `backend/src/agent/contracts/azure_analysis.py` (pydantic) |
-| Workspace root | `CLAUDE_WORKSPACE_ROOT` | `AGENT_WORKSPACE_ROOT` |
+| Workspace root | `CLAUDE_WORKSPACE_ROOT` | `AZURE_RESOURCE_ANALYZER_WORKSPACE_ROOT` |
 | Optimizer config | `backend/.claude/optimizer_configs/` | `backend/optimizer_configs/` |
 | Hosting | `ResponsesHostServer` | `ResponsesHostServer` (unchanged) |
 
@@ -33,11 +33,11 @@ This document maps the old components to their MAF replacements so existing depl
 | `CLAUDE_CODE_USE_FOUNDRY` | (removed) |
 | `ANTHROPIC_FOUNDRY_BASE_URL` / `ANTHROPIC_FOUNDRY_API_KEY` | (removed; use `DefaultAzureCredential`) |
 | `ANTHROPIC_DEFAULT_*_MODEL` | `AZURE_AI_MODEL_DEPLOYMENT_NAME` |
-| `AZURE_AI_PROJECT_ENDPOINT` | `FOUNDRY_PROJECT_ENDPOINT` (also accepts `AZURE_AI_PROJECT_ENDPOINT`) |
+| `AZURE_AI_PROJECT_ENDPOINT` | `AZURE_RESOURCE_ANALYZER_PROJECT_ENDPOINT` (also accepts `AZURE_AI_PROJECT_ENDPOINT`) |
 | `CLAUDE_MODEL` / `CLAUDE_MAX_TURNS` / `CLAUDE_EFFORT` | (removed) |
 | `CLAUDE_PERMISSION_MODE` | Tool guardrails (`backend/src/agent/tools/guardrails.py`) |
-| `CLAUDE_WORKSPACE_ROOT` | `AGENT_WORKSPACE_ROOT` (old name still read as a deprecated fallback) |
-| `CLAUDE_CODE_USE_POWERSHELL_TOOL` | `AGENT_ENABLE_SHELL_TOOL` |
+| `CLAUDE_WORKSPACE_ROOT` | `AZURE_RESOURCE_ANALYZER_WORKSPACE_ROOT` (old names still read as deprecated fallbacks) |
+| `CLAUDE_CODE_USE_POWERSHELL_TOOL` | `AZURE_RESOURCE_ANALYZER_ENABLE_SHELL_TOOL` |
 
 ## Dependency changes
 

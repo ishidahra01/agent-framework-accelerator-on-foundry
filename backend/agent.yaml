@@ -7,24 +7,25 @@ template:
         version: 1.0.0
   environment_variables:
       # Foundry project the agent talks to. Hosted Agent deployments normally inject
-      # AZURE_AI_PROJECT_ENDPOINT; the runtime also accepts FOUNDRY_PROJECT_ENDPOINT.
-      - name: FOUNDRY_PROJECT_ENDPOINT
+      # AZURE_AI_PROJECT_ENDPOINT; use app-specific aliases because FOUNDRY_* and
+      # AGENT_* names are reserved by the Hosted Agent container spec.
+      - name: AZURE_RESOURCE_ANALYZER_PROJECT_ENDPOINT
         value: ${AZURE_AI_PROJECT_ENDPOINT}
       - name: AZURE_AI_PROJECT_ENDPOINT
         value: ${AZURE_AI_PROJECT_ENDPOINT}
       # Model deployment name used by FoundryChatClient.
       - name: AZURE_AI_MODEL_DEPLOYMENT_NAME
         value: ${AZURE_AI_MODEL_DEPLOYMENT_NAME}
-      - name: FOUNDRY_AGENT_NAME
+      - name: AZURE_RESOURCE_ANALYZER_AGENT_NAME
         value: azure-resource-analyzer
       # workflow = specialist decomposition (default), single = one coordinator agent.
-      - name: AGENT_RUNTIME_MODE
-        value: workflow
+      - name: AZURE_RESOURCE_ANALYZER_RUNTIME_MODE
+        value: single
       # Filesystem workspace root, resolved under $HOME on Hosted Agents.
-      - name: AGENT_WORKSPACE_ROOT
+      - name: AZURE_RESOURCE_ANALYZER_WORKSPACE_ROOT
         value: $HOME/work
       # Shell tool stays disabled by default; opt in explicitly.
-      - name: AGENT_ENABLE_SHELL_TOOL
+      - name: AZURE_RESOURCE_ANALYZER_ENABLE_SHELL_TOOL
         value: "false"
       # Observability (Part B). Application Insights connection is injected by Foundry.
       - name: ENABLE_INSTRUMENTATION

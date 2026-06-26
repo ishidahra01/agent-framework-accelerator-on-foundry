@@ -36,7 +36,7 @@ def test_specialist_skill_mapping() -> None:
     assert definitions["security"].skills == ("azure-security-baselines",)
     assert definitions["cost"].skills == ("azure-cost-patterns",)
     assert definitions["architecture"].skills == ("azure-waf-review",)
-    assert definitions["explore"].skills == ()
+    assert definitions["explore"].skills == ("azure-export-exploration",)
 
 
 def test_specialist_definitions_ordered() -> None:

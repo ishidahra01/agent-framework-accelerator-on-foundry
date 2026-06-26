@@ -159,7 +159,11 @@ def configure_agent_framework_observability(*, agent_name: str, agent_version: s
                 "azure.accelerator.schema": OUTPUT_SCHEMA_NAME,
             },
         )
-        configure_azure_monitor(connection_string=connection_string, resource=resource)
+        configure_azure_monitor(
+            connection_string=connection_string,
+            resource=resource,
+            instrumentation_options={"openai_agents": {"enabled": False}},
+        )
         enable_instrumentation(enable_sensitive_data=enable_sensitive_data, force=True)
         LOGGER.info("Configured Agent Framework tracing with Azure Monitor exporter.")
         return

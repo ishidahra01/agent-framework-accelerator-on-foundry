@@ -42,7 +42,10 @@ Set or confirm runtime values in `.azure/<env-name>/.env`.
 
 ```env
 AZURE_AI_MODEL_DEPLOYMENT_NAME=<your-foundry-model-deployment>
+AZURE_RESOURCE_ANALYZER_RUNTIME_MODE=single
 ```
+
+Use `single` for Hosted Agent smoke and acceptance tests with the current SDK stack. The `workflow` mode remains useful for local development, but the current Hosted responses streaming path can fail when wrapping the workflow agent.
 
 Provision and deploy.
 
@@ -114,6 +117,15 @@ If the installed `azd` extension exposes non-interactive run flags in your versi
 azd ai agent run --help
 ```
 
+Recent `azd` versions also expose non-interactive invoke and monitor commands. These are useful for smoke tests and log checks:
+
+```powershell
+azd ai agent invoke azure-resource-analyzer-maf "Analyze these Azure resources and return concise JSON with resourcesAnalyzed and topRisks: resource group rg-demo with an oversized VM, a public storage account, and an App Service without health checks."
+azd ai agent monitor --session-id <SESSION_ID_FROM_INVOKE> --tail 140
+```
+
+Passing signals in the monitor output include `Inbound POST /responses completed with status 200`, `HTTP/1.1 200 OK` for the Foundry model call, and no `Traceback` or request-level `ERROR` entries for the same trace ID.
+
 ## Test Option 3: Direct Responses API
 
 Use the direct API when you want to inspect the raw response shape and automate verification.
@@ -171,7 +183,7 @@ Use this matrix to decide whether the implemented harness is functioning, not ju
 | Built-in tools | Smoke prompt reads the file without asking for permission | File-specific findings appear, not generic Azure advice |
 | Specialist routing | Ask for an `explore` inventory | Provider/type counts include Storage, NSG, VM, SQL DB, DiagnosticSettings |
 | Specialist intent | Full review prompt produces security, cost, and architecture findings | Findings map to concrete resources and all three dimensions are populated |
-| Workspace contract | Ask the agent to write a short report under `AGENT_WORKSPACE_ROOT` | Generated artifact path is under `$HOME/work` and appears under HOME in the Portal Files view |
+| Workspace contract | Ask the agent to write a short report under `AZURE_RESOURCE_ANALYZER_WORKSPACE_ROOT` | Generated artifact path is under `$HOME/work` and appears under HOME in the Portal Files view |
 | Telemetry | Inspect Foundry/App Insights traces after a request | Hosted request, agent run, and model/tool spans or events are visible |
 | Output contract | Parse the final text as JSON after stripping Markdown fences if present | Required top-level keys exist and arrays contain required fields |
 
@@ -230,6 +242,16 @@ Expected output:
 | Output has multiple messages | Responses protocol returned intermediate assistant text | Validate the last non-empty output text |
 | Findings are generic | Agent did not inspect the file/input or lacked evidence | Use the smoke prompt with explicit file read, or paste the JSON inline |
 | No traces appear | App Insights connection was not wired into the hosted environment | Check `APPLICATIONINSIGHTS_CONNECTION_STRING` and `APPINSIGHTS_CONNECTION_STRING` mapping |
+
+To confirm the App Insights trace after `azd ai agent invoke`, query the App Insights component that matches the `APPLICATIONINSIGHTS_CONNECTION_STRING` application ID:
+
+```powershell
+$traceId = '<TRACE_ID_FROM_INVOKE>'
+$query = "union isfuzzy=true requests, exceptions, dependencies | where timestamp > ago(1h) | where operation_Id == '$traceId' | project timestamp, itemType, name, success, resultCode, duration, operation_Id | order by timestamp asc"
+az monitor app-insights query --app <APP_INSIGHTS_NAME> --resource-group <RESOURCE_GROUP> --analytics-query $query -o table
+```
+
+Passing signals are one successful `invoke_agent` request, successful model/storage dependencies, and no exception rows for the same `operation_Id`.
 
 ## Decision Criteria
 

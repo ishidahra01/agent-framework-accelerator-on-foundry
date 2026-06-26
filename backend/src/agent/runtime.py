@@ -43,6 +43,14 @@ DEFAULT_AGENT_NAME = "azure-resource-analyzer"
 _TRUTHY = {"1", "true", "yes", "on"}
 
 
+def _first_env(*names: str) -> str | None:
+    for name in names:
+        value = os.getenv(name)
+        if value:
+            return value
+    return None
+
+
 @dataclass(frozen=True)
 class RuntimeConfig:
     """Resolved configuration for the MAF runtime."""
@@ -54,23 +62,27 @@ class RuntimeConfig:
     enable_shell: bool
 
 
-def _flag(name: str, default: bool = False) -> bool:
-    value = os.getenv(name)
+def _flag(*names: str, default: bool = False) -> bool:
+    value = _first_env(*names)
     if value is None:
         return default
     return value.strip().lower() in _TRUTHY
 
 
 def resolve_agent_name() -> str:
-    return os.getenv("FOUNDRY_AGENT_NAME") or DEFAULT_AGENT_NAME
+    return _first_env("AZURE_RESOURCE_ANALYZER_AGENT_NAME", "FOUNDRY_AGENT_NAME") or DEFAULT_AGENT_NAME
 
 
 def resolve_agent_version() -> str:
-    return os.getenv("FOUNDRY_AGENT_VERSION", "")
+    return _first_env("AZURE_RESOURCE_ANALYZER_AGENT_VERSION", "FOUNDRY_AGENT_VERSION") or ""
 
 
 def resolve_project_endpoint() -> str | None:
-    return os.getenv("FOUNDRY_PROJECT_ENDPOINT") or os.getenv("AZURE_AI_PROJECT_ENDPOINT")
+    return _first_env(
+        "AZURE_RESOURCE_ANALYZER_PROJECT_ENDPOINT",
+        "FOUNDRY_PROJECT_ENDPOINT",
+        "AZURE_AI_PROJECT_ENDPOINT",
+    )
 
 
 def resolve_model_deployment() -> str | None:
@@ -103,7 +115,11 @@ def load_runtime_config() -> RuntimeConfig:
         model_deployment=model,
         agent_name=resolve_agent_name(),
         agent_version=resolve_agent_version(),
-        enable_shell=_flag("AGENT_ENABLE_SHELL_TOOL", default=False),
+        enable_shell=_flag(
+            "AZURE_RESOURCE_ANALYZER_ENABLE_SHELL_TOOL",
+            "AGENT_ENABLE_SHELL_TOOL",
+            default=False,
+        ),
     )
 
 

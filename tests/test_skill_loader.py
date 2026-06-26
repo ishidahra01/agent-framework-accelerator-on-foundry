@@ -17,6 +17,8 @@ from src.agent.skills import (
 BACKEND_DIR = Path(__file__).resolve().parent.parent / "backend"
 SKILLS_ROOT = BACKEND_DIR / "skills"
 EXPECTED_SKILL_NAMES = {
+    "azure-analysis-synthesis",
+    "azure-export-exploration",
     "azure-security-baselines",
     "azure-cost-patterns",
     "azure-waf-review",
@@ -45,7 +47,7 @@ def test_skills_sorted_deterministically() -> None:
 
 def test_registry_lookup_and_catalog() -> None:
     registry = SkillRegistry.from_directory(SKILLS_ROOT)
-    assert len(registry) == 3
+    assert len(registry) == len(EXPECTED_SKILL_NAMES)
     assert set(registry.names) == EXPECTED_SKILL_NAMES
     skill = registry.get("azure-security-baselines")
     assert skill is not None

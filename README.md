@@ -1,26 +1,67 @@
-# Azure Resource Analyzer Accelerator on Foundry
+# Microsoft Foundry Agent Development Accelerator
 
-This repository is a reference accelerator for building an Azure resource analysis agent with the **Microsoft Agent Framework (MAF)** and running it as a **Microsoft Foundry Hosted Agent**.
+This repository is hands-on content for learning how to build, host, observe, evaluate, and improve enterprise agents with **Microsoft Foundry** and the **Microsoft Agent Framework (MAF)**.
 
-The sample scenario is an Azure Well-Architected review. The agent reads Azure exports, ARM-style JSON, or resource configuration snapshots, then returns security findings, cost recommendations, and architecture guidance through a stable output contract.
+The concrete sample is an Azure Well-Architected review agent, but the main purpose is broader than Azure resource analysis. The sample gives the repo a realistic workload for deep dives into agent harness design, Hosted Agent deployment, observability, evaluation, and optimization.
 
-> **Migrating from the Claude Agent SDK build?** Earlier revisions of this accelerator used the Claude Agent SDK as the inner harness. The runtime is now fully MAF-native and Claude-free. See [docs/migration-from-claude-agent-sdk.md](docs/migration-from-claude-agent-sdk.md) for the mapping between the old and new components.
+> **Migrating from the Claude Agent SDK build?** Earlier revisions used the Claude Agent SDK as the inner harness. The runtime is now MAF-native and Claude-free. See [docs/migration-from-claude-agent-sdk.md](docs/migration-from-claude-agent-sdk.md) for the mapping between the old and new components.
 
-The current implementation covers **Part A: Harness Deep Dive** and the first steps of **Part B: Trust to ROI Deep Dive**. Part A shows how to build and host the agent on MAF. Part B includes Observe, Evaluate, and Optimize foundations: tracing context, local ASSERT-like policy checks, rubric scorecards, seed datasets, a Foundry portal Rubric evaluation guide, optional Foundry cloud evaluation automation, and Agent Optimizer readiness. Start with [docs/architecture.md](docs/architecture.md) for the runtime walkthrough and [docs/deploy-hosted-agent.md](docs/deploy-hosted-agent.md) for deployment.
+> Some deep dive documents still preserve historical notes from the pre-MAF migration. Use [docs/architecture.md](docs/architecture.md) as the source of truth for the current MAF runtime, and use the deep dives for the product concepts and implementation path.
 
-## What This Repository Demonstrates
+## What You Can Learn Here
 
-- Microsoft Agent Framework as the inner harness for the agent loop, specialist decomposition, internal Skills, explicit tools, and structured output
-- `FoundryChatClient` as the model client for Foundry-hosted deployments
-- A multi-specialist MAF workflow (explore → security / cost / architecture → synthesize) that can also run as a single coordinator agent
-- An internal Skills system built on MAF's experimental `SkillsProvider` / `FileSkillsSource`, with a plain-prompt fallback
-- Microsoft Foundry Hosted Agent as the outer managed harness for endpoint hosting, sandbox execution, state boundaries, telemetry, and future identity / guardrail integration
-- A fixed Azure analysis output schema (pydantic) used by Part B for observability, evaluation, control, optimization, and ROI
-- A Part B Observe foundation that adds accelerator-specific OpenTelemetry attributes around the Hosted Agent runtime
-- A Part B Evaluate foundation that turns policies and rubrics into repeatable local checks, a portal-first Rubric evaluation flow, and optional Foundry cloud eval automation
-- A Part B Optimize foundation that wires Agent Optimizer baseline/candidate config into the Hosted Agent runtime
-- Tool guardrails that deny secret paths and destructive shell commands by default
-- A deliberately weak Azure export under `backend/samples/bad-config/` for repeatable demos
+| Deep dive | What this repo demonstrates | Start here |
+| --- | --- | --- |
+| Agent development on MAF | Explicit agent construction, `FoundryChatClient`, tools, internal Skills, structured output, and workflow orchestration. | [docs/architecture.md](docs/architecture.md) |
+| Harness design | How the agent loop, tools, state, output contracts, hosting boundary, and telemetry fit together. | [docs/architecture.md](docs/architecture.md), [docs/harness-deepdive.md](docs/harness-deepdive.md) |
+| Foundry Hosted Agent deployment | Packaging the backend as a Hosted Agent with a responses endpoint, sandboxed filesystem, environment contract, and deployment validation. | [docs/deploy-hosted-agent.md](docs/deploy-hosted-agent.md), [docs/hosted-agent-test-plan.md](docs/hosted-agent-test-plan.md) |
+| Observability and evaluation | OpenTelemetry context, App Insights / Foundry trace readiness, local policy checks, rubric scorecards, and Foundry evaluation handoff. | [docs/trust-roi-deepdive.md](docs/trust-roi-deepdive.md), [docs/foundry-portal-rubric-evaluation.md](docs/foundry-portal-rubric-evaluation.md) |
+| Optimization loop | Agent Optimizer baseline / candidate configuration and evaluation-driven improvement. | [docs/foundry-agent-optimizer.md](docs/foundry-agent-optimizer.md), [docs/foundry-agent-optimizer-concepts.md](docs/foundry-agent-optimizer-concepts.md) |
+
+## Why Foundry?
+
+Foundry is the outer managed runtime for this accelerator. It matters because a useful enterprise agent is not just a local prompt loop; it needs a production surface around it.
+
+| Need | Foundry / Hosted Agent role in this repo |
+| --- | --- |
+| Hosted endpoint | Exposes the MAF backend through the Hosted Agent responses protocol. |
+| Managed execution boundary | Runs the custom backend in a hosted container with a clear deployment and environment contract. |
+| Workspace and state boundary | Provides a session-oriented filesystem surface so generated files and intermediate artifacts have a predictable home. |
+| Identity and secure configuration | Uses `DefaultAzureCredential` locally or managed identity when deployed; no API keys are required for the main MAF runtime path. |
+| Observability | Bridges runtime telemetry into Foundry / Application Insights so agent runs can be traced, debugged, and evaluated. |
+| Evaluation and optimization | Connects the deployed agent to rubric evaluation, cloud evaluation automation, and Agent Optimizer workflows. |
+
+Details live in [docs/deploy-hosted-agent.md](docs/deploy-hosted-agent.md), [docs/hosted-agent-test-plan.md](docs/hosted-agent-test-plan.md), and [docs/trust-roi-deepdive.md](docs/trust-roi-deepdive.md).
+
+## Why Microsoft Agent Framework?
+
+MAF is the inner harness for this accelerator: the code-level runtime that decides how the agent is built, how it calls the model, how tools are registered, how specialists coordinate, and how output is shaped.
+
+In this repo, a harness means the runtime scaffolding around the model. It includes instructions, model client selection, tools, Skills, workflow routing, workspace handling, guardrails, output contracts, and telemetry hooks. Agents need that harness because reliable behavior comes from repeatable runtime structure, not from a prompt alone.
+
+MAF is used here because it provides:
+
+- explicit `Agent` construction instead of hidden runtime state
+- `FoundryChatClient` integration for Foundry model deployments
+- workflow-based specialist orchestration for explore, security, cost, architecture, and synthesis steps
+- tool registration through normal Python functions with local guardrails
+- structured output contracts that evaluation and control code can validate
+- observability integration points for model, tool, and application traces
+
+The current implementation can run in `workflow` mode, where specialists are wired through a MAF workflow, or `single` mode, where one coordinator agent receives all tools and Skills. See [docs/architecture.md](docs/architecture.md) for the current runtime walkthrough.
+
+## What Is Implemented
+
+- MAF-native runtime construction with `Agent` + `FoundryChatClient`
+- Multi-specialist workflow: explore -> security / cost / architecture -> synthesize
+- Internal Skills under `backend/skills/` for Azure WAF, security, and cost review guidance
+- Guarded file, search, Azure export, and optional shell tools
+- Stable pydantic output contract for analysis results
+- Hosted Agent responses server entrypoint in `backend/main.py`
+- Hosted Agent manifest in `backend/agent.yaml`
+- Observability foundation with OpenTelemetry attributes and App Insights / Azure Monitor environment normalization
+- Local evaluation assets: policy YAML, rubric YAML, JSONL datasets, and scorecard helper
+- Optional Foundry cloud evaluation runner and Agent Optimizer configuration bridge
 
 ## Current Architecture
 
@@ -34,67 +75,14 @@ User / client
   -> internal Azure WAF / security / cost Skills
   -> guarded file / search / export / shell tools
   -> stable JSON analysis contract (pydantic)
+  -> observability and evaluation assets
 ```
 
-The architecture is described in more detail in [docs/architecture.md](docs/architecture.md). The internal Skills system is documented in [docs/skills.md](docs/skills.md) and the tool guardrails in [docs/security-model.md](docs/security-model.md).
+The architecture is described in [docs/architecture.md](docs/architecture.md). Skills are documented in [docs/skills.md](docs/skills.md), and tool guardrails are documented in [docs/security-model.md](docs/security-model.md).
 
-## Repository Layout
+## Sample Scenario
 
-```text
-backend/
-  main.py                         # Hosted Agent entrypoint (ResponsesHostServer)
-  agent.yaml                      # azd / Hosted Agent manifest
-  agents/                         # MAF-neutral coordinator + specialist instructions
-  skills/                         # Internal Azure WAF, security, and cost Skills (SKILL.md)
-  optimizer_configs/              # Agent Optimizer baseline overlay
-  src/agent/
-    runtime.py                    # Agent + FoundryChatClient construction
-    workflow.py                   # Specialist workflow (explore/security/cost/architecture/synthesize)
-    instructions.py               # Loads agents/*.md and composes system instructions
-    workspace.py                  # Hosted workspace root helper (AGENT_WORKSPACE_ROOT)
-    contracts/azure_analysis.py   # Stable output schema (pydantic) and prompt contract
-    skills/                       # Internal Skills loader/registry over SkillsProvider
-    tools/                        # Guarded file/search/export/shell tools
-    optimization.py               # Agent Optimizer runtime config bridge
-    observability/tracing.py      # Part B Observe helper and trace attribute contract
-    observability/evaluation.py   # Part B Evaluate local policy/rubric scorecard helper
-  .foundry/
-    agent-metadata.yaml           # Design metadata for Hosted Agent behavior
-  samples/
-    bad-config/azure-export.json  # Demo input included in the hosted container
-evals/                            # Part B policy, rubric, conversation, and JSONL evaluation assets
-scripts/
-  run_foundry_agent_eval.py       # Optional Foundry cloud evaluation runner
-docs/
-  architecture.md
-  migration-from-claude-agent-sdk.md
-  skills.md
-  security-model.md
-  deploy-hosted-agent.md
-  hosted-agent-test-plan.md
-  harness-deepdive.md
-  trust-roi-deepdive.md
-  foundry-portal-rubric-evaluation.md
-  foundry-agent-optimizer-concepts.md
-  foundry-agent-optimizer.md
-```
-
-## Agent Design
-
-The coordinator agent (`azure-resource-analyzer`) drives four specialists:
-
-| Specialist | Responsibility |
-| --- | --- |
-| `explore` | Inventories files, resource types, and high-signal configuration facts before deeper review. |
-| `security` | Reviews public exposure, encryption, identity, authentication, and network controls. |
-| `cost` | Reviews oversized resources, always-on spend, premium SKUs, and elasticity gaps. |
-| `architecture` | Reviews reliability, operational readiness, observability, and Well-Architected alignment. |
-
-In `workflow` mode the specialists run as a MAF workflow; in `single` mode the coordinator runs as one agent with all tools and skills. Skills under `backend/skills/` provide progressive context loading for Azure WAF, security baselines, and cost patterns.
-
-## Expected Analysis Output
-
-Azure analysis preserves this contract:
+The sample agent reviews Azure exports, ARM-style JSON, or resource configuration snapshots. It returns security findings, cost recommendations, and architecture guidance through this stable contract:
 
 ```json
 {
@@ -105,7 +93,36 @@ Azure analysis preserves this contract:
 }
 ```
 
-The contract is centralized in `backend/src/agent/contracts/azure_analysis.py` and appended to the runtime prompt in `backend/src/agent/runtime.py`.
+The contract is centralized in `backend/src/agent/contracts/azure_analysis.py` and appended to the runtime prompt in `backend/src/agent/runtime.py`. Part B uses the same shape for policy checks, rubric scoring, future controls, optimization, and ROI.
+
+## Repository Layout
+
+```text
+backend/
+  main.py                         # Hosted Agent entrypoint (ResponsesHostServer)
+  agent.yaml                      # azd / Hosted Agent manifest
+  agents/                         # coordinator and specialist instructions
+  skills/                         # internal Azure WAF, security, and cost Skills
+  optimizer_configs/              # Agent Optimizer baseline overlay
+  src/agent/
+    runtime.py                    # Agent + FoundryChatClient construction
+    workflow.py                   # specialist workflow construction
+    instructions.py               # loads agents/*.md and composes system instructions
+    workspace.py                  # Hosted workspace root helper
+    contracts/azure_analysis.py   # stable output schema and prompt contract
+    skills/                       # Skills loader / registry
+    tools/                        # guarded tools
+    optimization.py               # Agent Optimizer runtime config bridge
+    observability/tracing.py      # Observe helper and trace attribute contract
+    observability/evaluation.py   # local policy / rubric scorecard helper
+  samples/
+    bad-config/azure-export.json  # deliberately weak demo input
+evals/                            # policy, rubric, conversation, and JSONL evaluation assets
+scripts/
+  run_foundry_agent_eval.py       # optional Foundry cloud evaluation runner
+docs/                             # architecture, deployment, harness, observability, evaluation, optimizer guides
+tests/                            # unit and construction tests
+```
 
 ## Local Development
 
@@ -118,7 +135,7 @@ python -m venv .venv
 pip install -r requirements.txt
 ```
 
-Configure Foundry access through `backend/.env` or environment variables (see `backend/.env.example`):
+Configure Foundry access through `backend/.env` or environment variables. See `backend/.env.example` for the full list.
 
 ```env
 FOUNDRY_PROJECT_ENDPOINT=https://<resource>.services.ai.azure.com/api/projects/<project>
@@ -127,9 +144,7 @@ AGENT_RUNTIME_MODE=workflow
 AGENT_WORKSPACE_ROOT=work
 ```
 
-Authentication uses `DefaultAzureCredential`: run `az login` locally, or rely on managed identity when deployed. No API keys are required.
-
-For Hosted Agent deployment, the manifest sets `AGENT_WORKSPACE_ROOT=$HOME/work` so generated files are written under the session-persisted HOME filesystem that appears in the Foundry Portal Files view.
+Authentication uses `DefaultAzureCredential`: run `az login` locally, or rely on managed identity when deployed.
 
 Start the local responses server:
 
@@ -138,33 +153,6 @@ python main.py
 ```
 
 The default endpoint is `http://localhost:8088/responses`.
-
-### Testing and validation
-
-Install the test dependencies and run the suite from the repository root:
-
-```powershell
-pip install -r backend/requirements-dev.txt
-python -m compileall -q backend scripts tests
-python -m pytest tests/ -q
-```
-
-The pure-Python tests (config, contracts, skills, tools, instructions, workspace)
-run without the Microsoft Agent Framework installed. When MAF **is** installed,
-the MAF-gated tests in `tests/test_maf_construction.py` additionally exercise the
-real `Agent`/`Workflow` construction path with an injected fake chat client, so no
-Foundry endpoint is required to verify the wiring (specialist tools, fan-in graph,
-structured-output contract, optimizer overlay).
-
-### Cloud agent environment
-
-The GitHub Copilot cloud agent gets the MAF runtime preinstalled via
-[`.github/workflows/copilot-setup-steps.yml`](.github/workflows/copilot-setup-steps.yml).
-This lets the cloud agent build the agent, run the construction path, and execute
-the full test-suite during a task instead of discovering dependencies by trial and
-error. The workflow also runs on changes to itself (or the requirements files) so
-the environment stays validated. Note: the file must be on the default branch for
-the cloud agent to pick it up.
 
 ## Demo Prompt
 
@@ -180,15 +168,26 @@ Deploy the backend as a Foundry Hosted Agent with `azd ai agent init`, `azd prov
 
 After deployment, validate both input paths: the bundled fixture smoke test and the inline JSON request test. See [docs/hosted-agent-test-plan.md](docs/hosted-agent-test-plan.md) for the Hosted Agent verification checklist and concrete prompts.
 
+## Testing and Validation
+
+Install the test dependencies and run the suite from the repository root:
+
+```powershell
+pip install -r backend/requirements-dev.txt
+python -m compileall -q backend scripts tests
+python -m pytest tests/ -q
+```
+
+The pure-Python tests run without Microsoft Agent Framework installed. When MAF is installed, `tests/test_maf_construction.py` also exercises real `Agent` / `Workflow` construction with an injected fake chat client, so no Foundry endpoint is required to verify the wiring.
+
 ## Status and Roadmap
 
 | Area | Status |
 | --- | --- |
-| Part A inner harness | Implemented: MAF agent loop, specialist workflow, internal Skills, guarded tools. |
-| Part A outer harness | Implemented: ResponsesHostServer, responses manifest, telemetry setup, workspace contract. |
-| Part A next steps | Approval checkpoint, Invocations protocol, identity hardening. |
-| Part B Observe | Implemented foundation: tracing helper, common attributes, startup/server observability context. |
-| Part B Evaluate | Implemented foundation: ASSERT-like policy assets, local rubric scorecard, datasets, and optional Foundry cloud eval runner. |
+| Part A harness | Implemented: MAF agent loop, specialist workflow, internal Skills, guarded tools, Hosted Agent responses entrypoint. |
+| Part B Observe | Implemented foundation: trace helper, common attributes, startup/server observability context. |
+| Part B Evaluate | Implemented foundation: policy assets, local rubric scorecard, seed datasets, optional Foundry cloud eval runner. |
+| Part B Optimize | Implemented foundation: Agent Optimizer baseline/candidate config bridge. |
 | Part B next steps | Planned: request/run spans, trace evaluation, ACS policy/runtime, ROI metrics. |
 | Frontend | Planned. |
 

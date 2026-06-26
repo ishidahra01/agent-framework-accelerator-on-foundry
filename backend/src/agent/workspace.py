@@ -4,8 +4,9 @@ The workspace is the persistent filesystem boundary for the Hosted Agent demo:
 normalized exports, intermediate summaries, and generated reports live there. It
 must never store secrets or credential material.
 
-Configuration uses ``AGENT_WORKSPACE_ROOT``. ``CLAUDE_WORKSPACE_ROOT`` is still
-honored as a deprecated fallback during migration and emits a warning.
+Configuration uses ``AZURE_RESOURCE_ANALYZER_WORKSPACE_ROOT``. ``AGENT_WORKSPACE_ROOT``
+and ``CLAUDE_WORKSPACE_ROOT`` are still honored as deprecated fallbacks during
+migration and emit a warning.
 """
 
 from __future__ import annotations
@@ -17,7 +18,8 @@ from pathlib import Path
 LOGGER = logging.getLogger("azure_resource_analyzer.workspace")
 
 DEFAULT_WORKSPACE_ROOT_NAME = "work"
-WORKSPACE_ROOT_ENV = "AGENT_WORKSPACE_ROOT"
+WORKSPACE_ROOT_ENV = "AZURE_RESOURCE_ANALYZER_WORKSPACE_ROOT"
+_LEGACY_WORKSPACE_ROOT_ENV = "AGENT_WORKSPACE_ROOT"
 _DEPRECATED_WORKSPACE_ROOT_ENV = "CLAUDE_WORKSPACE_ROOT"
 
 
@@ -25,6 +27,15 @@ def _configured_workspace_root() -> str | None:
     configured = os.getenv(WORKSPACE_ROOT_ENV)
     if configured:
         return configured
+
+    legacy_agent = os.getenv(_LEGACY_WORKSPACE_ROOT_ENV)
+    if legacy_agent:
+        LOGGER.warning(
+            "%s is deprecated for hosted deployments; use %s instead.",
+            _LEGACY_WORKSPACE_ROOT_ENV,
+            WORKSPACE_ROOT_ENV,
+        )
+        return legacy_agent
 
     legacy = os.getenv(_DEPRECATED_WORKSPACE_ROOT_ENV)
     if legacy:

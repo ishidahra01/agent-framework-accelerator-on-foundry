@@ -5,6 +5,10 @@ description: Azure security review guidance for exported resources. Use when che
 
 Apply this skill when analyzing Azure infrastructure definitions or exported resource lists.
 
+Role in the single-agent review pipeline: security reviewer. Use this skill after the input has
+been inventoried and before cost or architecture synthesis. Keep security findings separate from
+cost and reliability recommendations unless they directly affect risk.
+
 Focus on evidence-driven checks such as:
 
 - Public endpoints, public network access, and open inbound rules

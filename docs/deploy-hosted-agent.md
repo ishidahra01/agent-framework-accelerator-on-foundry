@@ -60,9 +60,9 @@ Open the generated `.azure/<env-name>/.env` and set your model deployment name:
 AZURE_AI_MODEL_DEPLOYMENT_NAME=<your-foundry-model-deployment>
 ```
 
-Other values in this `.env` file (project endpoint, App Insights connection string, ACR endpoint, etc.) are populated automatically by `azd provision`. The runtime reads the project endpoint from `FOUNDRY_PROJECT_ENDPOINT` or `AZURE_AI_PROJECT_ENDPOINT`.
+Other values in this `.env` file (project endpoint, App Insights connection string, ACR endpoint, etc.) are populated automatically by `azd provision`. The runtime reads the project endpoint from `AZURE_RESOURCE_ANALYZER_PROJECT_ENDPOINT`, with fallbacks for `FOUNDRY_PROJECT_ENDPOINT` and `AZURE_AI_PROJECT_ENDPOINT`.
 
-The manifest also sets `AGENT_WORKSPACE_ROOT=$HOME/work`. Hosted Agents persist session state under `$HOME` and `/files`, so this keeps normalized exports, intermediate summaries, and generated reports in the same filesystem surface that the Foundry Portal Files view exposes. Local `.env` files can still use `AGENT_WORKSPACE_ROOT=work`, which resolves under the backend project directory.
+The manifest also sets `AZURE_RESOURCE_ANALYZER_WORKSPACE_ROOT=$HOME/work`. Hosted Agents persist session state under `$HOME` and `/files`, so this keeps normalized exports, intermediate summaries, and generated reports in the same filesystem surface that the Foundry Portal Files view exposes. Local `.env` files can still use `AZURE_RESOURCE_ANALYZER_WORKSPACE_ROOT=work`, which resolves under the backend project directory.
 
 Custom environment variables in `agent.yaml` must not use the `AGENT_` or `FOUNDRY_` prefixes unless they are part of the reserved Hosted Agent container specification. Confirm prefix rules against the current Hosted Agent docs before adding new variables.
 
@@ -99,7 +99,8 @@ For the main Hosted Agent acceptance test, pass the Azure export JSON in the Por
 ## Runtime Notes
 
 - `backend/main.py` keeps the process working directory at `backend/` so agent instructions under `agents/`, internal skills under `skills/`, and demo samples remain discoverable.
-- `AGENT_WORKSPACE_ROOT` controls where the agent should write intermediate artifacts. Local `work` resolves under the backend project directory; hosted deployments should use `$HOME/work` so artifacts are session-persisted and visible under the portal's HOME file tree.
+- `AZURE_RESOURCE_ANALYZER_RUNTIME_MODE` controls orchestration. Hosted Agent deployments use `single`: one coordinator agent with all tools attached and role separation supplied by MAF file-based skills under `backend/skills/*/SKILL.md`. `workflow` remains available for local/runtime experiments, but the current `agent-framework-foundry-hosting` responses streaming path is not yet compatible with the workflow agent stream returned by this SDK stack.
+- `AZURE_RESOURCE_ANALYZER_WORKSPACE_ROOT` controls where the agent should write intermediate artifacts. Local `work` resolves under the backend project directory; hosted deployments should use `$HOME/work` so artifacts are session-persisted and visible under the portal's HOME file tree.
 - `APPINSIGHTS_CONNECTION_STRING` or `AZURE_MONITOR_CONNECTION_STRING` is normalized to `APPLICATIONINSIGHTS_CONNECTION_STRING` so the telemetry layer can export consistently.
 - `backend/.foundry/agent-metadata.yaml` is a design metadata file. The deployment source of truth for `azd ai agent init` remains `backend/agent.yaml`.
 

@@ -4,7 +4,7 @@ This is the Claude-free runtime: it builds the Azure Resource Analyzer with
 Microsoft Agent Framework and hosts it through the Foundry Hosted Agent responses
 protocol.
 
-Runtime modes (``AGENT_RUNTIME_MODE``):
+Runtime modes (``AZURE_RESOURCE_ANALYZER_RUNTIME_MODE``):
 * ``workflow`` (default): explore -> security/cost/architecture -> synthesize,
   built with ``WorkflowBuilder`` and hosted via ``workflow.as_agent()``.
 * ``single``: one coordinator ``Agent`` with explicit tools and skills.
@@ -43,11 +43,17 @@ LOGGER = logging.getLogger("azure_resource_analyzer")
 DEFAULT_PORT = 8088
 
 
+class _OpenAIAgentsInstrumentationFilter(logging.Filter):
+    def filter(self, record: logging.LogRecord) -> bool:
+        return "Failed to set up A365 OpenAI Agents instrumentation" not in record.getMessage()
+
+
 def _configure_logging() -> None:
     logging.basicConfig(
         level=os.getenv("LOG_LEVEL", "INFO").upper(),
         format="%(asctime)s %(levelname)s %(name)s %(message)s",
     )
+    logging.getLogger("microsoft.opentelemetry._distro").addFilter(_OpenAIAgentsInstrumentationFilter())
 
 
 def _configure_observability_environment() -> None:
@@ -72,9 +78,13 @@ def _resolve_port(default: int = DEFAULT_PORT) -> int:
 
 
 def _resolve_runtime_mode() -> str:
-    mode = os.getenv("AGENT_RUNTIME_MODE", "workflow").strip().lower()
+    mode = (
+        os.getenv("AZURE_RESOURCE_ANALYZER_RUNTIME_MODE")
+        or os.getenv("AGENT_RUNTIME_MODE")
+        or "workflow"
+    ).strip().lower()
     if mode not in {"workflow", "single"}:
-        LOGGER.warning("Invalid AGENT_RUNTIME_MODE=%r. Falling back to 'workflow'.", mode)
+        LOGGER.warning("Invalid runtime mode=%r. Falling back to 'workflow'.", mode)
         return "workflow"
     return mode
 

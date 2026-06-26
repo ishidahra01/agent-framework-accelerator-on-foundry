@@ -5,6 +5,10 @@ description: Azure Well-Architected and reliability review guidance for exported
 
 Use this skill to review architecture and reliability.
 
+Role in the single-agent review pipeline: architecture and reliability reviewer. Use this skill
+after the resource inventory is understood and keep reliability or operational findings separate
+from security and cost unless the same evidence supports multiple dimensions.
+
 Check for:
 
 - Single points of failure such as single-instance compute or disabled HA

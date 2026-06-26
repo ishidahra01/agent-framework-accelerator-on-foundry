@@ -8,9 +8,11 @@ Each skill lives in its own directory under `backend/skills/` with a `SKILL.md` 
 
 ```text
 backend/skills/
+  azure-export-exploration/SKILL.md
   azure-security-baselines/SKILL.md
   azure-cost-patterns/SKILL.md
   azure-waf-review/SKILL.md
+  azure-analysis-synthesis/SKILL.md
 ```
 
 Every `SKILL.md` starts with YAML frontmatter (`name` and `description`, optionally `tags`) followed by markdown instructions:
@@ -35,6 +37,20 @@ The `description` is what the model sees when deciding whether to load a skill, 
 2. **Prompt fallback** — when `agent-framework-core` is unavailable or the experimental feature is off, the registry (`backend/src/agent/skills/registry.py`) injects skill advertisements directly into the system prompt via `prompt_blocks()` / `advertisement()`.
 
 Either way the loader returns the same parsed skills, so the runtime starts cleanly with or without the experimental feature.
+
+## Role Skills in Hosted Single Mode
+
+Hosted deployments run the analyzer as one coordinator `Agent` with `SkillsProvider.from_paths(...)` attached through `context_providers`. Role separation is provided by the coordinator instructions plus these file-based skills:
+
+| Skill | Role |
+| --- | --- |
+| `azure-export-exploration` | Inventory files, resource types, high-signal facts, and missing context before review. |
+| `azure-security-baselines` | Review public exposure, encryption, identity, authentication, and network controls. |
+| `azure-cost-patterns` | Review oversizing, always-on spend, premium tiers, and elasticity gaps. |
+| `azure-waf-review` | Review reliability, operational readiness, observability, and Well-Architected fit. |
+| `azure-analysis-synthesis` | Merge evidence into the stable `summary` / `security` / `cost` / `architecture` contract. |
+
+The older specialist agent markdown files under `backend/agents/` remain available for workflow-mode experiments, but Hosted Agent operation should treat the `SKILL.md` files as the standard role definitions.
 
 ## Experimental status
 

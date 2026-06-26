@@ -90,7 +90,7 @@ def test_runtime_config_agent_name_override(monkeypatch: pytest.MonkeyPatch) -> 
 
 def test_skill_registry_loaded() -> None:
     registry = build_skill_registry(BACKEND_DIR)
-    assert len(registry) == 3
+    assert len(registry) == 5
 
 
 def test_compose_runtime_instructions(tmp_path: Path) -> None:

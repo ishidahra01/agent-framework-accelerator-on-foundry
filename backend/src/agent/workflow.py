@@ -21,7 +21,7 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import Any
+from typing import Any, Sequence
 
 from .contracts import analysis_output_instructions
 from .instructions import (
@@ -37,6 +37,25 @@ from .tools import build_default_tools
 LOGGER = logging.getLogger("azure_resource_analyzer.workflow")
 
 SYNTHESIZER_NAME = "synthesize"
+
+
+def _response_text(response: Any) -> str:
+    if hasattr(response, "with_text"):
+        return str(response.with_text())
+    agent_response = getattr(response, "agent_response", None)
+    if agent_response is not None:
+        text = getattr(agent_response, "text", None)
+        if text:
+            return str(text)
+    return str(response)
+
+
+def _merge_specialist_outputs(responses: Sequence[Any]) -> str:
+    sections = []
+    for response in responses:
+        executor_id = getattr(response, "executor_id", "specialist")
+        sections.append(f"## {executor_id}\n{_response_text(response)}")
+    return "\n\n".join(sections)
 
 
 def _specialist_instructions(definition: AgentDefinition, registry: SkillRegistry) -> str:
@@ -120,7 +139,12 @@ def build_analysis_workflow_agent(
     """Build the specialist workflow and return it as a hostable agent."""
 
     try:
-        from agent_framework import AgentExecutor, WorkflowBuilder
+        from agent_framework import (
+            AgentExecutor,
+            AgentExecutorResponse,
+            FunctionExecutor,
+            WorkflowBuilder,
+        )
     except ImportError as exc:  # pragma: no cover - requires MAF not installed
         raise RuntimeError(
             "agent-framework-core is not installed. Install the runtime with "
@@ -139,16 +163,23 @@ def build_analysis_workflow_agent(
     security = AgentExecutor(agents["security"], context_mode="last_agent")
     cost = AgentExecutor(agents["cost"], context_mode="last_agent")
     architecture = AgentExecutor(agents["architecture"], context_mode="last_agent")
+    merge_findings = FunctionExecutor(
+        _merge_specialist_outputs,
+        id="merge_findings",
+        input=list[AgentExecutorResponse],
+        output=str,
+    )
     synthesize = AgentExecutor(agents[SYNTHESIZER_NAME], context_mode="last_agent")
 
     # explore fans out to the three reviewers; the reviewers fan in to a single
-    # synthesize run so all three findings are merged once (not three separate runs).
+    # merge step, then synthesize runs once with all three findings.
     workflow = (
         WorkflowBuilder(start_executor=explore, output_from=[synthesize])
         .add_edge(explore, security)
         .add_edge(explore, cost)
         .add_edge(explore, architecture)
-        .add_fan_in_edges([security, cost, architecture], synthesize)
+        .add_fan_in_edges([security, cost, architecture], merge_findings)
+        .add_edge(merge_findings, synthesize)
         .build()
     )
 

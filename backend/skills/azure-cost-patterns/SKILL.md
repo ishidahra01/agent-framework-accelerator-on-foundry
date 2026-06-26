@@ -5,6 +5,10 @@ description: Azure cost optimization guidance for exported resources. Use when c
 
 Use this skill for Azure cost reviews.
 
+Role in the single-agent review pipeline: cost reviewer. Use this skill after the input has been
+inventoried and independently from security review. Keep recommendations grounded in exported
+configuration, and mark utilization-dependent conclusions as assumptions.
+
 Look for:
 
 - Oversized VM SKUs relative to the surrounding architecture

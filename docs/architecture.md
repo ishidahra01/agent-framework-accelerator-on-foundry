@@ -12,7 +12,7 @@ The accelerator treats harness as two cooperating layers.
 
 | Layer | Primary runtime | Responsibility | Current repository surface |
 | --- | --- | --- | --- |
-| Inner harness | Microsoft Agent Framework | Agent loop, explicit tools, specialist workflow, internal Skills, structured output | `backend/main.py`, `backend/src/agent/runtime.py`, `backend/src/agent/workflow.py`, `backend/agents/`, `backend/skills/` |
+| Inner harness | Microsoft Agent Framework | Single coordinator agent, explicit tools, internal Skills, structured output, optional specialist workflow | `backend/main.py`, `backend/src/agent/runtime.py`, `backend/src/agent/workflow.py`, `backend/agents/`, `backend/skills/` |
 | Outer managed harness | Microsoft Foundry Hosted Agent | Hosted endpoint, sandbox, filesystem persistence, state boundary, telemetry bridge, identity, scale | `backend/agent.yaml`, `backend/.foundry/agent-metadata.yaml`, `docs/deploy-hosted-agent.md` |
 
 MAF owns orchestration through `Agent` + `FoundryChatClient`. The Hosted Agent runtime exposes the agent through the responses protocol and connects it to Foundry operations.
@@ -25,19 +25,19 @@ User / client
   -> backend/main.py (ResponsesHostServer)
   -> Microsoft Agent Framework runtime
   -> Agent + FoundryChatClient
-  -> specialist workflow: explore -> security / cost / architecture -> synthesize
-  -> internal Azure WAF / security / cost Skills
+  -> single coordinator review pipeline
+  -> internal exploration / security / cost / WAF / synthesis Skills
   -> guarded file / search / export / shell tools
   -> stable analysis output contract
   -> Part B observability attributes and traces
 ```
 
-The runtime supports two modes via `AGENT_RUNTIME_MODE`:
+The runtime supports two modes via `AZURE_RESOURCE_ANALYZER_RUNTIME_MODE`:
 
-- `workflow` (default): the coordinator delegates to specialist agents wired through `WorkflowBuilder` (`explore` first, then `security`/`cost`/`architecture`, then a synthesizer), exposed as a single agent with `workflow.as_agent()`.
-- `single`: one coordinator agent with all tools and skills attached.
+- `single`: the Hosted Agent default. One coordinator agent uses MAF file-based Skills to separate exploration, security, cost, architecture, and synthesis roles.
+- `workflow`: an optional local/experimental path where specialist agents are wired through `WorkflowBuilder` (`explore` first, then `security`/`cost`/`architecture`, then a synthesizer) and exposed as one agent with `workflow.as_agent()`.
 
-Source code, agent instructions, skills, and demo samples live under `backend/` so the hosted container has a self-contained project directory. Local generated artifacts can use `backend/work/`, while Hosted Agent deployment sets `AGENT_WORKSPACE_ROOT=$HOME/work` so generated files live in the session-persisted home filesystem.
+Source code, agent instructions, skills, and demo samples live under `backend/` so the hosted container has a self-contained project directory. Local generated artifacts can use `backend/work/`, while Hosted Agent deployment sets `AZURE_RESOURCE_ANALYZER_WORKSPACE_ROOT=$HOME/work` so generated files live in the session-persisted home filesystem.
 
 ## Internal Skills
 
@@ -81,10 +81,11 @@ See [trust-roi-deepdive.md](trust-roi-deepdive.md) for the full Part B guide.
 | Capability | Status | Notes |
 | --- | --- | --- |
 | MAF agent loop | Implemented | `Agent` + `FoundryChatClient` constructed in `backend/src/agent/runtime.py`. |
-| Specialist workflow | Implemented | Explore, security, cost, and architecture specialists wired in `backend/src/agent/workflow.py`. |
-| Internal Skills | Implemented | Security, cost, and WAF guidance under `backend/skills/`, loaded via `SkillsProvider`. |
+| Hosted single-agent runtime | Implemented | Coordinator agent uses `SkillsProvider.from_paths(...)` to separate exploration, security, cost, architecture, and synthesis roles. |
+| Specialist workflow | Experimental | Explore, security, cost, and architecture specialists remain wired in `backend/src/agent/workflow.py` for local/future workflow use. |
+| Internal Skills | Implemented | Exploration, security, cost, WAF, and synthesis guidance under `backend/skills/`, loaded via `SkillsProvider`. |
 | Responses protocol entry | Implemented | `backend/agent.yaml` declares the hosted responses protocol. |
-| Filesystem workspace contract | Implemented | Local `AGENT_WORKSPACE_ROOT=work`; Hosted Agent manifest uses `$HOME/work`. |
+| Filesystem workspace contract | Implemented | Local `AZURE_RESOURCE_ANALYZER_WORKSPACE_ROOT=work`; Hosted Agent manifest uses `$HOME/work`. |
 | Fixed analysis output schema | Implemented | `backend/src/agent/contracts/azure_analysis.py` centralizes the contract. |
 | Tool guardrails | Implemented | Secret-path and destructive-command denylists in `backend/src/agent/tools/guardrails.py`. |
 | Part B Observe helper | Implemented | `backend/src/agent/observability/tracing.py` defines common trace attributes and startup context. |
